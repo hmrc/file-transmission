@@ -17,18 +17,33 @@
 package uk.gov.hmrc.filetransmission.controllers
 
 import javax.inject.Singleton
-
+import play.api.Logger
+import play.api.libs.json.{Json, Reads, Writes}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import play.api.mvc._
+import uk.gov.hmrc.filetransmission.model._
 
 import scala.concurrent.Future
 
 @Singleton()
-class MicroserviceHelloWorld extends BaseController {
+class TransmissionRequestController extends BaseController {
 
-	def hello() = Action.async { implicit request =>
-		Future.successful(Ok("Hello world"))
-	}
+  implicit val fileReads: Reads[File] = Json.reads[File]
+
+  implicit val propertyReads: Reads[Property] = Json.reads[Property]
+
+  implicit val journeyReads: Reads[Journey] = Json.reads[Journey]
+
+  implicit val batchReads: Reads[Batch] = Json.reads[Batch]
+
+  implicit val transmissionRequestReads: Reads[TransmissionRequest] = Json.reads[TransmissionRequest]
+
+  def requestTransmission() = Action.async(parse.json) { implicit request =>
+    withJsonBody[TransmissionRequest] { transmissionRequest =>
+      Logger.info(s"Retrieved reqeuest $transmissionRequest")
+      Future.successful(NoContent)
+    }
+  }
 
 }
