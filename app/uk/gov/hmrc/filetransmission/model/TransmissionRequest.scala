@@ -29,14 +29,14 @@ case class Batch(id: String, fileCount: Int)
 case class Journey(name: String, version: String)
 
 case class File(
+  reference: String,
   location: String,
   name: String,
-  id: String,
   mimeType: String,
   checksum: String,
-  indexInBatch: Int
+  sequenceNumber: Int
 )
 case class Property(
-  key: String,
+  name: String,
   value: String
 )

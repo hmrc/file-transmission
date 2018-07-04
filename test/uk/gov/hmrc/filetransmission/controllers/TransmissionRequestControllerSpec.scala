@@ -38,20 +38,20 @@ class TransmissionRequestControllerSpec extends UnitSpec {
       val request: FakeRequest[JsValue] = FakeRequest().withBody(
         Json.obj(
           "file" -> Json.obj(
-            "id"           -> "file1",
-            "indexInBatch" -> 1,
-            "name"         -> "test.pdf",
-            "mimeType"     -> "application/pdf",
-            "location"     -> "http://127.0.0.1/location",
-            "checksum"     -> "1234"
+            "reference"      -> "file1",
+            "sequenceNumber" -> 1,
+            "name"           -> "test.pdf",
+            "mimeType"       -> "application/pdf",
+            "location"       -> "http://127.0.0.1/location",
+            "checksum"       -> "1234"
           ),
           "journey" -> Json.obj(
             "name"    -> "sampleJourney",
             "version" -> "1.0"
           ),
           "properties" -> Json.arr(
-            Json.obj("key" -> "key1", "value" -> "value1"),
-            Json.obj("key" -> "key2", "value" -> "value2")
+            Json.obj("name" -> "key1", "value" -> "value1"),
+            Json.obj("name" -> "key2", "value" -> "value2")
           ),
           "batch" -> Json.obj(
             "id"        -> "batch1",
