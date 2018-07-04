@@ -16,18 +16,20 @@
 
 package uk.gov.hmrc.filetransmission.controllers
 
-import javax.inject.Singleton
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
-import play.api.libs.json.{Json, Reads, Writes}
+import play.api.libs.json.{JsValue, Json, Reads, Writes}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import play.api.mvc._
+import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
+import uk.gov.hmrc.filetransmission.utils.UserAgentFilter
 
 import scala.concurrent.Future
 
 @Singleton()
-class TransmissionRequestController extends BaseController {
+class TransmissionRequestController @Inject()(override val configuration: ServiceConfiguration) extends BaseController with UserAgentFilter {
 
   implicit val fileReads: Reads[File] = Json.reads[File]
 
@@ -40,9 +42,12 @@ class TransmissionRequestController extends BaseController {
   implicit val transmissionRequestReads: Reads[TransmissionRequest] = Json.reads[TransmissionRequest]
 
   def requestTransmission() = Action.async(parse.json) { implicit request =>
-    withJsonBody[TransmissionRequest] { transmissionRequest =>
-      Logger.info(s"Retrieved reqeuest $transmissionRequest")
-      Future.successful(NoContent)
+    onlyAllowedServices {
+      withJsonBody[TransmissionRequest] {
+        transmissionRequest =>
+        Logger.info(s"Retrieved request $transmissionRequest")
+        Future.successful(NoContent)
+      }
     }
   }
 
