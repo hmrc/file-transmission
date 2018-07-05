@@ -43,11 +43,11 @@ The following information has to pe passed within request:
 - `journeyName` / `journeyVersion` - information for MDG about meaning of files in the batch, determining what process should be invoked.
 - `requestTimeoutInSeconds` - time describing how long file-transmission service will try to deliver file details to MDG. 
 - Details about the file
--- `location` - URL allowing to download file contents. Please be aware that this URL has to be accessible by MDG (verify networking configuration and use external domain names). Download URL's provided by upscan service are valid.
--- `fileName` / `mimeType` - original name of the file and it's MIME type
--- `checksum` - SHA256 checksum of the file in hexadecimal format
--- `reference` - unique reference of the file (this will be interpreted by MDG as `correlationId`)
--- `sequenceNumber` -  sequence number of the file in the batch (**please be aware that this should be 1-based**)
+ - `location` - URL allowing to download file contents. Please be aware that this URL has to be accessible by MDG (verify networking configuration and use external domain names). Download URL's provided by upscan service are valid.
+ - `fileName` / `mimeType` - original name of the file and it's MIME type
+ - `checksum` - SHA256 checksum of the file in hexadecimal format
+ - `reference` - unique reference of the file (this will be interpreted by MDG as `correlationId`)
+ - `sequenceNumber` -  sequence number of the file in the batch (**please be aware that this should be 1-based**)
 - Additional properties - key/value map of custom properties that can be attached to the file
 
 The request has to include the following HTTP headers:
