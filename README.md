@@ -4,14 +4,14 @@
 
 Microservice that facilitates transmission of files requested by MDTP through MDG.
 
-Services on the MDTP platform should use `file-transmission` to initiate the transmission of a batch of hosted files through MDG. `file-transmission` notifies MDG about files that the service on MDTP would like to be processed. Please note that file-transmission does not upload or transfer files directly. Instead, it provides MDG with data allowing to to identify the file, how it should be processed and where it is hosted. File upload and hosting must be provided by another service, such as [`upscan`](https://github.com/hmrc/upscan-initiate).
+Services on the MDTP platform should use `file-transmission` to initiate the transmission of a batch of hosted files through MDG. `file-transmission` notifies MDG about files that the service on MDTP would like to be processed. Please note that `file-transmission` does not upload or transfer files directly. Instead, it provides data allowing MDG to identify the file and how it should be processed, along with where the file is hosted. File upload and hosting must be provided by another service, such as [`upscan`](https://github.com/hmrc/upscan-initiate).
 
 # Typical use case
 
 - Consuming service requests upload of user file(s) using `upscan`
-- `Upscan` notifies the consuming service of successful file upload and the URL where the file is hosted and can be downloaded
+- `Upscan` notifies the consuming service of successful file upload and the relevant URL where the file is hosted and can be downloaded
 - Consuming service verifies ensures that all required files have been correctly uploaded by the user
-- Consuming service can now use `file-transmission` to notify MDG that files are ready to be processed
+- Consuming service can now use `file-transmission` to notify MDG that these files are ready to be processed
 - MDG proceeds to asynchronously process the file batch as appropriate
 
 ## Service usage
@@ -25,14 +25,14 @@ In order to initiate transmission, the consuming service must be whitelisted by 
 The basic unit of work for `file-transmission` is data pertaining to a batch consisting of one or more files.
 
 Information about each file in the batch is passed to `file-transmission` in separate POST requests. 
-Additional calls to 'create' a batch or to notify that information about all files in the batch have 
+Additional calls to 'create' a batch or to notify that information about all files in the batch has 
 been provided are not necessary.
 
 Whitelisted consuming service first make a POST request to the `/file-transmission/request` endpoint. 
 The request should provide data about the batch, each file in the batch, and a callback URL that will be used to asynchronously notify the consuming service when MDG has processed the request. The consuming service may also provide additional optional metadata that it wants to pass through MDG.
 
-The body of a request for transmission of a file in a batch would typically comprise:
-- `callbackUrl` - URL provided by the consuming service used by MDG to notify it about the result of the batch processing.
+The body of a request for transmission of a file in a batch would typically comprise the below:
+- `callbackUrl` - URL provided by the consuming service used by MDG to notify it about the result of the batch processing
 - `requestTimeoutInSeconds` - duration that `file-transmission` will try to deliver file details to MDG before giving up
 - Batch information
   - `batchId` - unique batch identifier
@@ -54,15 +54,15 @@ The request HTTP headers should follow the below format:
 | Header name | Description | Required |
 |--------------|-----------|--------|
 | User-Agent | Identifier of the service that calls `file-transmission` | yes |
-| X-Session-ID | Identifier of the user's session | no  |
 | X-Request-ID | Identifier of the user's request | no |
+| X-Session-ID | Identifier of the user's session | no |
 
-Session-ID / Request-ID headers will be used to link the file with a relevant user's journey.
+Request-ID / Session-ID headers will be used to link the file with a relevant user's journey.
 
 *Note:* If you are using `[http-verbs](https://github.com/hmrc/http-verbs)` to call the service, all the headers will be set automatically
 (See: [HttpVerb.scala](https://github.com/hmrc/http-verbs/blob/2807dc65f64009bd7ce1f14b38b356e06dd23512/src/main/scala/uk/gov/hmrc/http/HttpVerb.scala#L53))
 
-Here is an example of the request body:
+Here is an example of a request body for `file-transmission`:
 ```
 {
 	"batch": {
@@ -98,7 +98,7 @@ Here is an example of the request body:
 
 ### Request outcome
 
-A successful POST request will return a HTTP 204 response with an empty body.
+A successful POST request will receive a HTTP 204 response with an empty body.
 
 An unsuccessful POST request will receive a HTTP-error coded response (4xx, 5xx). The response body will contain XML encoded details of the problem. See the Error Handling section for details.
 
