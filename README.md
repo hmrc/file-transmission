@@ -8,14 +8,14 @@ Whenever service on MDTP platform wants to send bundle (batch) of files to MDG i
 service notifies MDG that files prepared by service on MDTP are ready to be processed. Please note that file-transmission service 
 do not transfer file contents. The service just passes data about file location. The file content has to be provided by other service (eg. upscan)
 
-#Typical usage scenario
+# Typical usage scenario
 
-* Consuming service requests upload of the file from user using `upscan` service
-* `Upscan` notifies consuming service that the file has been uploaded and is ready to be processed - giving consuming 
+- Consuming service requests upload of the file from user using `upscan` service
+- `Upscan` notifies consuming service that the file has been uploaded and is ready to be processed - giving consuming 
 service the URL that allows to download the file.
-* Consuming service ensures that all required files have been uploaded by the user
-* Consuming service uses file-transmission service to notify MDG that files are ready to be processes
-* MDG asynchronously uses the file
+- Consuming service ensures that all required files have been uploaded by the user
+- Consuming service uses file-transmission service to notify MDG that files are ready to be processes
+- MDG asynchronously uses the file
 
 ## Service usage
 
