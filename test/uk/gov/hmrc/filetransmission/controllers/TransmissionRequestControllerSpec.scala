@@ -22,8 +22,13 @@ import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
+import uk.gov.hmrc.filetransmission.model.TransmissionRequest
+import uk.gov.hmrc.filetransmission.services.TransmissionService
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class TransmissionRequestControllerSpec extends UnitSpec {
@@ -38,17 +43,19 @@ class TransmissionRequestControllerSpec extends UnitSpec {
     override def allowedUserAgents = Seq("VALID-AGENT")
   }
 
+  val transmissionService = new TransmissionService()
+
   val validRequestBody = Json.obj(
     "file" -> Json.obj(
-      "reference" -> "file1",
+      "reference"      -> "file1",
       "sequenceNumber" -> 1,
-      "name" -> "test.pdf",
-      "mimeType" -> "application/pdf",
-      "location" -> "http://127.0.0.1/location",
-      "checksum" -> "1234"
+      "name"           -> "test.pdf",
+      "mimeType"       -> "application/pdf",
+      "location"       -> "http://127.0.0.1/location",
+      "checksum"       -> "1234"
     ),
     "journey" -> Json.obj(
-      "name" -> "sampleJourney",
+      "name"    -> "sampleJourney",
       "version" -> "1.0"
     ),
     "properties" -> Json.arr(
@@ -56,23 +63,24 @@ class TransmissionRequestControllerSpec extends UnitSpec {
       Json.obj("name" -> "key2", "value" -> "value2")
     ),
     "batch" -> Json.obj(
-      "id" -> "batch1",
+      "id"        -> "batch1",
       "fileCount" -> 2
     ),
-    "callbackUrl" -> "http://127.0.0.1/callback",
+    "callbackUrl"             -> "http://127.0.0.1/callback",
     "requestTimeoutInSeconds" -> 3000
   )
 
   "POST /transmission" should {
     "valid request should return 200" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "VALID-AGENT"),
-                     ("x-request-id", "some-request-id"),
-                     ("x-session-id", "some-session-id"))
+        .withHeaders(
+          ("User-Agent", "VALID-AGENT"),
+          ("x-request-id", "some-request-id"),
+          ("x-session-id", "some-session-id"))
         .withBody(validRequestBody)
 
-      val controller = new TransmissionRequestController(serviceConfiguration)
-      val result = controller.requestTransmission()(request)
+      val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
+      val result     = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
         status(result) shouldBe Status.NO_CONTENT
@@ -81,13 +89,14 @@ class TransmissionRequestControllerSpec extends UnitSpec {
 
     "invalid white-listed request should return 400" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "VALID-AGENT"),
-                     ("x-request-id", "some-request-id"),
-                     ("x-session-id", "some-session-id"))
+        .withHeaders(
+          ("User-Agent", "VALID-AGENT"),
+          ("x-request-id", "some-request-id"),
+          ("x-session-id", "some-session-id"))
         .withBody(Json.obj("invalid" -> "value"))
 
-      val controller = new TransmissionRequestController(serviceConfiguration)
-      val result = controller.requestTransmission()(request)
+      val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
+      val result     = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
         status(result) shouldBe Status.BAD_REQUEST
@@ -96,13 +105,14 @@ class TransmissionRequestControllerSpec extends UnitSpec {
 
     "valid yet non-whitelisted request should return 403" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "INVALID-AGENT"),
-                     ("x-request-id", "some-request-id"),
-                     ("x-session-id", "some-session-id"))
+        .withHeaders(
+          ("User-Agent", "INVALID-AGENT"),
+          ("x-request-id", "some-request-id"),
+          ("x-session-id", "some-session-id"))
         .withBody(validRequestBody)
 
-      val controller = new TransmissionRequestController(serviceConfiguration)
-      val result = controller.requestTransmission()(request)
+      val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
+      val result     = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
         status(result) shouldBe Status.FORBIDDEN

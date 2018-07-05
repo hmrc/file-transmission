@@ -30,22 +30,19 @@ trait UserAgentFilter {
 
   private val userAgents: Seq[String] = configuration.allowedUserAgents
 
-  def onlyAllowedServices(block: => Future[Result])(
-      implicit request: Request[_]): Future[Result] = {
-
+  def onlyAllowedServices(block: String => Future[Result])(implicit request: Request[_]): Future[Result] =
     request.headers.get(HeaderNames.USER_AGENT) match {
       case Some(userAgent) if allowedUserAgent(userAgent) =>
-        block
+        block(userAgent)
       case _ => {
-        Logger.warn(
-          s"Invalid User-Agent: [${request.headers.get(HeaderNames.USER_AGENT)}].")
+        Logger.warn(s"Invalid User-Agent: [${request.headers.get(HeaderNames.USER_AGENT)}].")
 
         Future.successful(
-          Forbidden("This service is not allowed to use file-transmission. " +
-            "If you need to use this service, please contact Platform Services team."))
+          Forbidden(
+            "This service is not allowed to use file-transmission. " +
+              "If you need to use this service, please contact Platform Services team."))
       }
     }
-  }
 
   private def allowedUserAgent(userAgent: String): Boolean =
     userAgents.contains(userAgent)
