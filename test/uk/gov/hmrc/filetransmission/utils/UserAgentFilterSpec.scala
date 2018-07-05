@@ -29,18 +29,14 @@ import uk.gov.hmrc.play.test.UnitSpec
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class UserAgentFilterSpec
-    extends UnitSpec
-    with Matchers
-    with GivenWhenThen
-    with MockitoSugar {
+class UserAgentFilterSpec extends UnitSpec with Matchers with GivenWhenThen with MockitoSugar {
 
-  class UserAgentFilterImpl(override val configuration: ServiceConfiguration)
-      extends UserAgentFilter
+  class UserAgentFilterImpl(override val configuration: ServiceConfiguration) extends UserAgentFilter
 
   "UserAgentFilter" should {
-    def block: Future[Result] =
-      Future.successful(Ok("This is a successful result"))
+    def block: String => Future[Result] = { callingService =>
+      Future.successful(Ok(s"This is a successful result done by $callingService"))
+    }
 
     implicit val timeout = Timeout(3.seconds)
 
@@ -51,12 +47,11 @@ class UserAgentFilterSpec
       val filter = new UserAgentFilterImpl(config)
 
       When("a request is received")
-      val result = filter.onlyAllowedServices(block)(
-        FakeRequest().withHeaders(("User-Agent", "VALID-AGENT")))
+      val result = filter.onlyAllowedServices(block)(FakeRequest().withHeaders(("User-Agent", "VALID-AGENT")))
 
       Then("the request should be passed through the filter")
-      status(result) shouldBe 200
-      Helpers.contentAsString(result) shouldBe "This is a successful result"
+      status(result)                  shouldBe 200
+      Helpers.contentAsString(result) shouldBe "This is a successful result done by VALID-AGENT"
     }
 
     "reject request if user agent not in whitelist" in {
