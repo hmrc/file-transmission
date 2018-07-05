@@ -50,7 +50,18 @@ The following information has to pe passed within request:
 -- `sequenceNumber` -  sequence number of the file in the batch (**please be aware that this should be 1-based**)
 - Additional properties - key/value map of custom properties that can be attached to the file
 
-The service also expects that the requests have headers that match MDTP standards. This includes:
+The request has to include the following HTTP headers:
+
+| Header name|Description|Required|
+|--------------|-----------|--------|
+| User-Agent | Identifier of the service that calls upscan | yes |
+| X-Session-ID | Identifier of the user's session | no  |
+| X-Request-ID | Identifier of the user's request | no |
+
+Session-ID / Request-ID headers will be used to link the file with user's journey.
+
+*Note:* If you are using `[http-verbs](https://github.com/hmrc/http-verbs)` to call the service, all the headers will be set automatically
+(See: [HttpVerb.scala](https://github.com/hmrc/http-verbs/blob/2807dc65f64009bd7ce1f14b38b356e06dd23512/src/main/scala/uk/gov/hmrc/http/HttpVerb.scala#L53))
 
 Here is an example of the request body:
 ```
