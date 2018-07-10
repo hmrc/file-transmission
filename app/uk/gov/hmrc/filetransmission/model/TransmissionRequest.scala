@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.filetransmission.model
 
+import java.net.URL
+
 case class TransmissionRequest(
   batch: Batch,
   journey: Journey,
   file: File,
   properties: Seq[Property],
-  callbackUrl: String,
+  callbackUrl: URL,
   requestTimeoutInSeconds: Int)
 
 case class Batch(id: String, fileCount: Int)
@@ -30,7 +32,7 @@ case class Journey(name: String, version: String)
 
 case class File(
   reference: String,
-  location: String,
+  location: URL,
   name: String,
   mimeType: String,
   checksum: String,
