@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.filetransmission.controllers
 
+import java.net.URL
+
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.TransmissionService
-import uk.gov.hmrc.filetransmission.utils.UserAgentFilter
+import uk.gov.hmrc.filetransmission.utils.{HttpUrlReads, UserAgentFilter}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext
@@ -33,6 +35,8 @@ class TransmissionRequestController @Inject()(
   override val configuration: ServiceConfiguration)(implicit ec: ExecutionContext)
     extends BaseController
     with UserAgentFilter {
+
+  implicit val urlReads: Reads[URL] = HttpUrlReads
 
   implicit val fileReads: Reads[File] = Json.reads[File]
 
