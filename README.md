@@ -1,14 +1,35 @@
-# file-transmission
+# file-transmission <a name="top"></a>
 
 [![Build Status](https://travis-ci.org/hmrc/file-transmission.svg)](https://travis-ci.org/hmrc/file-transmission) [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-transmission/images/download.svg) ](https://bintray.com/hmrc/releases/file-transmission/_latestVersion)
 
-## Introduction
+# File transmission user manual
+
+## Contents
+1. [Introduction](#introduction)
+2. [Typical use case](#use)
+3. [Onboarding requirements](#onboard)
+4. [Service usage](#service)
+  a. [Request file transmission](#service__request)
+  b. [Example `file-transmission` request](#service__example)
+  c. [Request outcome](#service__output)
+  d. [Whitelisting client services](#service__whitelist)
+5. [Running and maintenance of the service](#run)
+  a. [Run locally](#run__local)
+6. [Appendix](#appendix)
+  a. [Related projects, useful links](#appendix__links)
+    i. [Testing](#appendix__links__testing)
+    ii. [Slack](#appendix__links__slack)
+  b. [License](#appendix__license)
+
+## Introduction <a name="introduction"></a>
 
 Microservice that facilitates transmission of files requested by MDTP through MDG.
 
 Services on the MDTP platform should use `file-transmission` to initiate the transmission of a batch of hosted files through MDG. `file-transmission` notifies MDG about files that the service on MDTP would like to be processed. Please note that `file-transmission` does not upload or transfer files directly. Instead, it provides data allowing MDG to identify the file and how it should be processed, along with where the file is hosted. File upload and hosting must be provided by another service, such as [`upscan`](https://github.com/hmrc/upscan-initiate).
 
-## Typical use case
+[[Back to the top]](#top)
+
+## Typical use case <a name="use"></a>
 
 - Consuming service requests upload of user file(s) using `upscan`
 - `Upscan` notifies the consuming service of successful file upload and the relevant URL where the file is hosted and can be downloaded
@@ -16,13 +37,17 @@ Services on the MDTP platform should use `file-transmission` to initiate the tra
 - Consuming service can now use `file-transmission` to notify MDG that these files are ready to be processed
 - MDG proceeds to asynchronously process the file batch as appropriate
 
-## Onboarding requirements
+[[Back to the top]](#top)
+
+## Onboarding requirements <a name="onboard"></a>
 To use `file-transmission`, the consuming service must let Platform Services know :
 - the User-Agent request header of the service so it can be whitelisted
 
-## Service usage
+[[Back to the top]](#top)
 
-### Requesting file transmission
+## Service usage <a name="service"></a>
+
+### Request file transmission  <a name="service__request"></a>
 
 The basic unit of work for `file-transmission` is data pertaining to a batch consisting of one or more files.
 
@@ -64,6 +89,10 @@ Request-ID / Session-ID headers will be used to link the file with a relevant us
 *Note:* If you are using `[http-verbs](https://github.com/hmrc/http-verbs)` to call the service, all the headers will be set automatically
 (See: [HttpVerb.scala](https://github.com/hmrc/http-verbs/blob/2807dc65f64009bd7ce1f14b38b356e06dd23512/src/main/scala/uk/gov/hmrc/http/HttpVerb.scala#L53))
 
+[[Back to the top]](#top)
+
+### Example `file-transmission` request <a name="service__example"></a>
+
 Here is an example of a request body for `file-transmission`:
 ```
 {
@@ -98,7 +127,9 @@ Here is an example of a request body for `file-transmission`:
 }
 ```
 
-### Request outcome
+[[Back to the top]](#top)
+
+### Request outcome <a name="service__outcome"></a>
 
 A successful POST request will receive a HTTP 204 response with an empty body.
 
@@ -106,8 +137,9 @@ An unsuccessful POST request will receive a HTTP-error coded response (4xx, 5xx)
 
 **Please note that a successful response only means that the request has been parsed and stored for further processing. As MDG processing is performed asynchronously, the consuming service should wait until a callback is made from MDG before marking the batch as processed successfully.***
 
+[[Back to the top]](#top)
 
-### Whitelisting client services
+### Whitelisting client services <a name="service__whitelist"></a>
 
 Any service using `file-transmission` must be whitelisted. Please contact Platform Services if you would like to use this service.
 Consuming services must identify themselves in requests via the `User-Agent` header. If the supplied value is not in `file-transmission`'s list of allowed services then the `/file-transmission/request` call will fail with a `403` error.
@@ -126,14 +158,18 @@ In addition to returning the `403` error, `file-transmission` will log details o
 *Note:* If you are using `[http-verbs](https://github.com/hmrc/http-verbs)` to call `file-transmission`, then the `User-Agent` header will be set automatically.
 (See: [HttpVerb.scala](https://github.com/hmrc/http-verbs/blob/2807dc65f64009bd7ce1f14b38b356e06dd23512/src/main/scala/uk/gov/hmrc/http/HttpVerb.scala#L53))
 
+[[Back to the top]](#top)
 
-## Run locally
+## Running and maintenance of the service <a name="run"></a>
+
+### Run locally <a name="run__local"></a>
 
 #### Option #1: start all `file-transmission` dependencies using [`service-manager`](https://github.com/hmrc/service-manager)
 - Execute the below command to start `file-transmission` and its relevant dependencies with required configuration:
   ```
   sm -r --start FILE_TRANSMISSION_ALL
   ```
+[[Back to the top]](#top)
 
 #### Option #2: start `file-transmission` dependencies individually using [`service-manager`](https://github.com/hmrc/service-manager)
 - Execute the below commands to start `file-transmission` dependencies individually with required configuration:
@@ -141,7 +177,9 @@ In addition to returning the `403` error, `file-transmission` will log details o
   sm -r --start FILE_TRANSMISSION
   sm -r --start MDG_STUB
   ```
-
+  
+  [[Back to the top]](#top)
+  
 #### Option #3: start each `file-transmission` dependency individually with sbt and relevant local code
 - In the `file-transmission` repository, execute the below to start the application with required configuration:
     ```
@@ -151,19 +189,30 @@ In addition to returning the `403` error, `file-transmission` will log details o
     ```
     sbt "run 9576"
     ```
+    
+[[Back to the top]](#top)
 
-### Related projects, useful links:
+## Appendix <a name="appendix"></a>
+
+### Related projects, useful links: <a name="appendix__links"></a>
 
 * [upscan](https://github.com/hmrc/upscan-initiate) - service that manages the process of uploading files to MDTP by end users
 
-#### Testing
+[[Back to the top]](#top)
+
+#### Testing <a name="appendix__links__testing"></a>
 * [file-transmission-acceptance-tests](https://github.com/hmrc/file-transmisson-acceptance-tests) - acceptance tests of the `file-transmission` service
 
-#### Slack
+[[Back to the top]](#top)
+
+#### Slack <a name="appendix__links__slack"></a>
 * [#team-plat-services](https://hmrcdigital.slack.com/messages/C705QD804/)
 * [#event-upscan](https://hmrcdigital.slack.com/messages/C8XPL559N)
 
+[[Back to the top]](#top)
 
-#### License
+### License <a name="appendix__license"></a>
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html")
+
+[[Back to the top]](#top)
