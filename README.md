@@ -2,11 +2,13 @@
 
 [![Build Status](https://travis-ci.org/hmrc/file-transmission.svg)](https://travis-ci.org/hmrc/file-transmission) [ ![Download](https://api.bintray.com/packages/hmrc/releases/file-transmission/images/download.svg) ](https://bintray.com/hmrc/releases/file-transmission/_latestVersion)
 
+## Introduction
+
 Microservice that facilitates transmission of files requested by MDTP through MDG.
 
 Services on the MDTP platform should use `file-transmission` to initiate the transmission of a batch of hosted files through MDG. `file-transmission` notifies MDG about files that the service on MDTP would like to be processed. Please note that `file-transmission` does not upload or transfer files directly. Instead, it provides data allowing MDG to identify the file and how it should be processed, along with where the file is hosted. File upload and hosting must be provided by another service, such as [`upscan`](https://github.com/hmrc/upscan-initiate).
 
-# Typical use case
+## Typical use case
 
 - Consuming service requests upload of user file(s) using `upscan`
 - `Upscan` notifies the consuming service of successful file upload and the relevant URL where the file is hosted and can be downloaded
@@ -14,11 +16,11 @@ Services on the MDTP platform should use `file-transmission` to initiate the tra
 - Consuming service can now use `file-transmission` to notify MDG that these files are ready to be processed
 - MDG proceeds to asynchronously process the file batch as appropriate
 
+## Onboarding requirements
+To use `file-transmission`, the consuming service must let Platform Services know :
+- the User-Agent request header of the service so it can be whitelisted
+
 ## Service usage
-
-### Whitelisting
-
-In order to initiate transmission, the consuming service must be whitelisted by `file-transmission`. See the 'Whitelisting client services' section further down in this document.
 
 ### Requesting file transmission
 
@@ -125,22 +127,43 @@ In addition to returning the `403` error, `file-transmission` will log details o
 (See: [HttpVerb.scala](https://github.com/hmrc/http-verbs/blob/2807dc65f64009bd7ce1f14b38b356e06dd23512/src/main/scala/uk/gov/hmrc/http/HttpVerb.scala#L53))
 
 
-# Running locally
+## Run locally
 
-`file-transmission` can be run locally using sbt (`sbt run`) or service manager (`sm --start FILE_TRANSMISSION`).
+#### Option #1: start all `file-transmission` dependencies using [`service-manager`](https://github.com/hmrc/service-manager)
+- Execute the below command to start `file-transmission` and its relevant dependencies with required configuration:
+  ```
+  sm -r --start FILE_TRANSMISSION_ALL
+  ```
 
-## Related projects, useful links:
+#### Option #2: start `file-transmission` dependencies individually using [`service-manager`](https://github.com/hmrc/service-manager)
+- Execute the below commands to start `file-transmission` dependencies individually with required configuration:
+  ```
+  sm -r --start FILE_TRANSMISSION
+  sm -r --start MDG_STUB
+  ```
+
+#### Option #3: start each `file-transmission` dependency individually with sbt and relevant local code
+- In the `file-transmission` repository, execute the below to start the application with required configuration:
+    ```
+    sbt "run 9575 -DuserAgentFilter.allowedUserAgents="file-transmission-acceptance-tests""
+    ```
+- In the `mdg-stub` repository, execute the below to start the application:
+    ```
+    sbt "run 9576"
+    ```
+
+### Related projects, useful links:
 
 * [upscan](https://github.com/hmrc/upscan-initiate) - service that manages the process of uploading files to MDTP by end users
 
-### Testing
+#### Testing
 * [file-transmission-acceptance-tests](https://github.com/hmrc/file-transmisson-acceptance-tests) - acceptance tests of the `file-transmission` service
 
-### Slack
+#### Slack
 * [#team-plat-services](https://hmrcdigital.slack.com/messages/C705QD804/)
 * [#event-upscan](https://hmrcdigital.slack.com/messages/C8XPL559N)
 
 
-### License
+#### License
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html")
