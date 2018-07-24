@@ -18,6 +18,8 @@ package uk.gov.hmrc.filetransmission.controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import org.mockito.{ArgumentMatchers, Mockito}
+import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
@@ -26,9 +28,10 @@ import uk.gov.hmrc.filetransmission.services.TransmissionService
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class TransmissionRequestControllerSpec extends UnitSpec {
+class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
 
   implicit val actorSystem = ActorSystem()
 
@@ -40,7 +43,7 @@ class TransmissionRequestControllerSpec extends UnitSpec {
     override def allowedUserAgents = Seq("VALID-AGENT")
   }
 
-  val transmissionService = new TransmissionService()
+  val transmissionService = mock[TransmissionService]
 
   val validRequestBody = Json.obj(
     "file" -> Json.obj(
@@ -100,6 +103,10 @@ class TransmissionRequestControllerSpec extends UnitSpec {
           ("x-request-id", "some-request-id"),
           ("x-session-id", "some-session-id"))
         .withBody(validRequestBody)
+
+      Mockito
+        .when(transmissionService.request(ArgumentMatchers.any(), ArgumentMatchers.any()))
+        .thenReturn(Future.successful())
 
       val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
       val result     = controller.requestTransmission()(request)
