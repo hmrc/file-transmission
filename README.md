@@ -67,13 +67,14 @@ The body of a request for transmission of a file in a batch would typically comp
 - File information
   - `reference` - unique reference of the file (MDG will interpret this as the `correlationId`)
   - `fileName` - original name of the file
+  - `fileSize` - size of uploaded file
   - `mimeType` - MIME type of the file
   - `checksum` - SHA256 checksum of the file in hexadecimal format
    - `location` - URL where file is hosted. This URL should be accessible by MDG, e.g. verify networking configuration and use external domain names. URLs provided by `upscan` will already meet this requirement.
   - `sequenceNumber` - relative number of the file within the batch **[the first file in the batch should have sequenceNumber '1']**
 - Journey information
-  - `journeyName` - type of journey for MDG to use, specifying what process should be invoked on the file batch
-  - `journeyVersion` - the specific version of the named journey to use
+  - `interfaceName` - type of interface for MDG to use, specifying what process should be invoked on the file batch
+  - `interfaceVersion` - the specific version of the named interface to use
 - Additional properties - optional key/value map of custom properties to pass through MDG about the file and/or batch
 
 The request HTTP headers should follow the below format:
@@ -108,10 +109,11 @@ Here is an example of a request body for `file-transmission`:
 		"mimeType": "application/pdf",
 		"checksum": "asdrfgvbhujk13579",
 		"location": "https://file-outbound-asderfvghyujk1357690.aws.amazon.com",	
-		"sequenceNumber": 3
+		"sequenceNumber": 3,
+		"size": 1024
 	},
-	"journey":{
-		"name": "someJouney name",
+	"interface":{
+		"name": "interfaceName name",
 		"version": "1.0"
 	},
 	"properties":[
@@ -183,7 +185,7 @@ In addition to returning the `403` error, `file-transmission` will log details o
 #### Option #3: start each `file-transmission` dependency individually with sbt and relevant local code
 - In the `file-transmission` repository, execute the below to start the application with required configuration:
     ```
-    sbt "run 9575 -DuserAgentFilter.allowedUserAgents="file-transmission-acceptance-tests""
+    sbt "run 9575 -DuserAgentFilter.allowedUserAgents="file-transmission-acceptance-tests" -DmdgEndpoint="http://localhost:9576/mdg-stub/request""
     ```
 - In the `mdg-stub` repository, execute the below to start the application:
     ```
