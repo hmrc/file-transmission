@@ -123,7 +123,8 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
 
     val schemaLang = javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
     val xsdStream =
-      new javax.xml.transform.stream.StreamSource(this.getClass.getResourceAsStream("/mdg-schema.xsd"))
+      new javax.xml.transform.stream.StreamSource(
+        this.getClass.getResourceAsStream("/BatchFileInterfaceMetadata-1.0.6.xsd"))
     val schema = javax.xml.validation.SchemaFactory.newInstance(schemaLang).newSchema(xsdStream)
 
     val factory = javax.xml.parsers.SAXParserFactory.newInstance()

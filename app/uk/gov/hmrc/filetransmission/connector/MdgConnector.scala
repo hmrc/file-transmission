@@ -25,7 +25,6 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-//TODO There are no tests here
 class MdgConnector @Inject()(
   httpClient: HttpClient,
   serviceConfiguration: ServiceConfiguration,
