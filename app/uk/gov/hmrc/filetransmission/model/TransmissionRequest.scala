@@ -20,7 +20,7 @@ import java.net.URL
 
 case class TransmissionRequest(
   batch: Batch,
-  journey: Journey,
+  interface: Interface,
   file: File,
   properties: Seq[Property],
   callbackUrl: URL,
@@ -28,7 +28,7 @@ case class TransmissionRequest(
 
 case class Batch(id: String, fileCount: Int)
 
-case class Journey(name: String, version: String)
+case class Interface(name: String, version: String)
 
 case class File(
   reference: String,
@@ -36,8 +36,10 @@ case class File(
   name: String,
   mimeType: String,
   checksum: String,
-  sequenceNumber: Int
+  sequenceNumber: Int,
+  size: Int
 )
+
 case class Property(
   name: String,
   value: String

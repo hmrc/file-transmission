@@ -22,6 +22,7 @@ lazy val scoverageSettings = {
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+  .settings(PlayKeys.playDefaultPort := 9575)
   .settings(scalaSettings ++ scoverageSettings: _*)
   .settings(
     libraryDependencies              ++= AppDependencies.compile ++ AppDependencies.test(),

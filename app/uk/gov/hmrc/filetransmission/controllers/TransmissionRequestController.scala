@@ -42,13 +42,13 @@ class TransmissionRequestController @Inject()(
 
   implicit val propertyReads: Reads[Property] = Json.reads[Property]
 
-  implicit val journeyReads: Reads[Journey] = Json.reads[Journey]
+  implicit val interfaceReads: Reads[Interface] = Json.reads[Interface]
 
   implicit val batchReads: Reads[Batch] = Json.reads[Batch]
 
   implicit val transmissionRequestReads: Reads[TransmissionRequest] = Json.reads[TransmissionRequest]
 
-  def requestTransmission() = Action.async(parse.json) { implicit request =>
+  def requestTransmission() = Action.async(parse.json) { implicit request: Request[JsValue] =>
     onlyAllowedServices { serviceName =>
       withJsonBody[TransmissionRequest] { transmissionRequest =>
         for {

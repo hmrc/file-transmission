@@ -18,6 +18,9 @@ package uk.gov.hmrc.filetransmission.controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import org.mockito.ArgumentMatchers.any
+import org.mockito.{ArgumentMatchers, Mockito}
+import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
@@ -26,9 +29,10 @@ import uk.gov.hmrc.filetransmission.services.TransmissionService
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class TransmissionRequestControllerSpec extends UnitSpec {
+class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
 
   implicit val actorSystem = ActorSystem()
 
@@ -38,9 +42,11 @@ class TransmissionRequestControllerSpec extends UnitSpec {
 
   val serviceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = Seq("VALID-AGENT")
+
+    override def mdgEndpoint: String = ???
   }
 
-  val transmissionService = new TransmissionService()
+  val transmissionService = mock[TransmissionService]
 
   val validRequestBody = Json.obj(
     "file" -> Json.obj(
@@ -49,10 +55,11 @@ class TransmissionRequestControllerSpec extends UnitSpec {
       "name"           -> "test.pdf",
       "mimeType"       -> "application/pdf",
       "location"       -> "http://127.0.0.1/location",
-      "checksum"       -> "1234"
+      "checksum"       -> "1234",
+      "size"           -> 1024
     ),
-    "journey" -> Json.obj(
-      "name"    -> "sampleJourney",
+    "interface" -> Json.obj(
+      "name"    -> "sampleInterface",
       "version" -> "1.0"
     ),
     "properties" -> Json.arr(
@@ -74,10 +81,11 @@ class TransmissionRequestControllerSpec extends UnitSpec {
       "name"           -> "test.pdf",
       "mimeType"       -> "application/pdf",
       "location"       -> "http://127.0.0.1/location",
-      "checksum"       -> "1234"
+      "checksum"       -> "1234",
+      "size"           -> 1024
     ),
-    "journey" -> Json.obj(
-      "name"    -> "sampleJourney",
+    "interface" -> Json.obj(
+      "name"    -> "sampleInterface",
       "version" -> "1.0"
     ),
     "properties" -> Json.arr(
@@ -100,6 +108,10 @@ class TransmissionRequestControllerSpec extends UnitSpec {
           ("x-request-id", "some-request-id"),
           ("x-session-id", "some-session-id"))
         .withBody(validRequestBody)
+
+      Mockito
+        .when(transmissionService.request(any(), any())(any()))
+        .thenReturn(Future.successful((): Unit))
 
       val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
       val result     = controller.requestTransmission()(request)

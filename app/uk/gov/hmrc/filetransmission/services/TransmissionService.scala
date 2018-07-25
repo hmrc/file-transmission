@@ -18,17 +18,20 @@ package uk.gov.hmrc.filetransmission.services
 
 import javax.inject.Inject
 import play.api.Logger
+import uk.gov.hmrc.filetransmission.connector.MdgConnector
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-class TransmissionService @Inject()(implicit ec: ExecutionContext) {
+class TransmissionService @Inject()(mdgConnector: MdgConnector)(implicit ec: ExecutionContext) {
 
-  def request(request: TransmissionRequest, callingService: String): Future[Unit] = {
-    val result = Future.successful(())
+  def request(request: TransmissionRequest, callingService: String)(implicit hc: HeaderCarrier): Future[Unit] = {
+    val result: Future[Unit] = mdgConnector.requestTransmission(request)
     logResult(request, callingService, result)
-    result
+
+    Future.successful((): Unit)
   }
 
   private def logResult[T](request: TransmissionRequest, callingService: String, result: Future[T]): Future[T] = {

@@ -21,12 +21,12 @@ import org.apache.commons.lang3.StringUtils.isNotBlank
 import play.api.Configuration
 
 trait ServiceConfiguration {
+  def mdgEndpoint: String
 
   def allowedUserAgents: Seq[String]
 }
 
-class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
-    extends ServiceConfiguration {
+class PlayBasedServiceConfiguration @Inject()(configuration: Configuration) extends ServiceConfiguration {
 
   override def allowedUserAgents: Seq[String] =
     configuration
@@ -37,4 +37,6 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
       }
       .getOrElse(Nil)
 
+  override def mdgEndpoint: String =
+    configuration.getString("mdgEndpoint").getOrElse(throw new RuntimeException("'mdgEndpoint' property is missing"))
 }
