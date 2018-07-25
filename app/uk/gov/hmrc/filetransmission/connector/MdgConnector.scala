@@ -16,11 +16,29 @@
 
 package uk.gov.hmrc.filetransmission.connector
 
+import javax.inject.Inject
+import play.api.http.{ContentTypes, HeaderNames}
+import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class MdgConnector {
-  def requestTransmission(request: TransmissionRequest) = Future.successful(())
+//TODO There are no tests here
+class MdgConnector @Inject()(
+  httpClient: HttpClient,
+  serviceConfiguration: ServiceConfiguration,
+  requestSerializer: MdgRequestSerializer)(implicit ec: ExecutionContext) {
+
+  val mdgEndpoint: String = serviceConfiguration.mdgEndpoint
+
+  def requestTransmission(request: TransmissionRequest)(implicit hc: HeaderCarrier): Future[Unit] = {
+
+    val serializedRequest: String = requestSerializer.serialize(request)
+    httpClient
+      .POSTString[HttpResponse](mdgEndpoint, serializedRequest, Seq((HeaderNames.CONTENT_TYPE, ContentTypes.XML)))
+      .map(_ => ())
+  }
 
 }

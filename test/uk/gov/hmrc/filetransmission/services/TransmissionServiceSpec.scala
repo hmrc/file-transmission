@@ -18,11 +18,13 @@ package uk.gov.hmrc.filetransmission.services
 
 import java.net.URL
 
+import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
 import uk.gov.hmrc.filetransmission.connector.MdgConnector
 import uk.gov.hmrc.filetransmission.model._
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.duration._
@@ -35,8 +37,8 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
 
     val request: TransmissionRequest = TransmissionRequest(
       Batch("A", 10),
-      Journey("J", "1.0"),
-      File("ref", new URL("http://127.0.0.1/test"), "test.xml", "application/xml", "checksum", 1),
+      Interface("J", "1.0"),
+      File("ref", new URL("http://127.0.0.1/test"), "test.xml", "application/xml", "checksum", 1, 1024),
       Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
       new URL("http://127.0.0.1/test"),
       30
@@ -48,16 +50,16 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
       val transmissionService = new TransmissionService(mdgConnector)
 
       Given("MDG is working fine")
-      Mockito.when(mdgConnector.requestTransmission(ArgumentMatchers.any())).thenReturn(Future.successful(()))
+      Mockito.when(mdgConnector.requestTransmission(any())(any())).thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result = Await.ready(transmissionService.request(request, "callingService"), 10 seconds)
+      val result = Await.ready(transmissionService.request(request, "callingService")(HeaderCarrier()), 10 seconds)
 
       Then("immediate successful response is returned")
       result.value.get.isSuccess shouldBe true
 
       And("call to MDG has been made")
-      Mockito.verify(mdgConnector).requestTransmission(request)
+      Mockito.verify(mdgConnector).requestTransmission(ArgumentMatchers.eq(request))(any())
 
     }
 
@@ -68,17 +70,17 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
 
       Given("MDG is faulty")
       Mockito
-        .when(mdgConnector.requestTransmission(ArgumentMatchers.any()))
+        .when(mdgConnector.requestTransmission(any())(any()))
         .thenReturn(Future.failed(new Exception("PLanned exception")))
 
       When("request made to transmission service")
-      val result = Await.ready(transmissionService.request(request, "callingService"), 10 seconds)
+      val result = Await.ready(transmissionService.request(request, "callingService")(HeaderCarrier()), 10 seconds)
 
       Then("immediate successful response is returned")
       result.value.get.isSuccess shouldBe true
 
       And("call to MDG has been made")
-      Mockito.verify(mdgConnector).requestTransmission(request)
+      Mockito.verify(mdgConnector).requestTransmission(ArgumentMatchers.eq(request))(any())
 
     }
   }

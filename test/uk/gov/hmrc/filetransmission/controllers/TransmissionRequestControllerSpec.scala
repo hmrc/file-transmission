@@ -18,6 +18,7 @@ package uk.gov.hmrc.filetransmission.controllers
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
@@ -41,6 +42,8 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
 
   val serviceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = Seq("VALID-AGENT")
+
+    override def mdgEndpoint: String = ???
   }
 
   val transmissionService = mock[TransmissionService]
@@ -105,8 +108,8 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
         .withBody(validRequestBody)
 
       Mockito
-        .when(transmissionService.request(ArgumentMatchers.any(), ArgumentMatchers.any()))
-        .thenReturn(Future.successful())
+        .when(transmissionService.request(any(), any())(any()))
+        .thenReturn(Future.successful((): Unit))
 
       val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
       val result     = controller.requestTransmission()(request)
