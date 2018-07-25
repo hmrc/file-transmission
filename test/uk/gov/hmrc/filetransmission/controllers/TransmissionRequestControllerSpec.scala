@@ -55,10 +55,11 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       "name"           -> "test.pdf",
       "mimeType"       -> "application/pdf",
       "location"       -> "http://127.0.0.1/location",
-      "checksum"       -> "1234"
+      "checksum"       -> "1234",
+      "size"           -> 1024
     ),
-    "journey" -> Json.obj(
-      "name"    -> "sampleJourney",
+    "interface" -> Json.obj(
+      "name"    -> "sampleInterface",
       "version" -> "1.0"
     ),
     "properties" -> Json.arr(
@@ -80,10 +81,11 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       "name"           -> "test.pdf",
       "mimeType"       -> "application/pdf",
       "location"       -> "http://127.0.0.1/location",
-      "checksum"       -> "1234"
+      "checksum"       -> "1234",
+      "size"           -> 1024
     ),
-    "journey" -> Json.obj(
-      "name"    -> "sampleJourney",
+    "interface" -> Json.obj(
+      "name"    -> "sampleInterface",
       "version" -> "1.0"
     ),
     "properties" -> Json.arr(

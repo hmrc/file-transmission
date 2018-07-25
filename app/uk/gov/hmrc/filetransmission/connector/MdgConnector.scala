@@ -31,13 +31,14 @@ class MdgConnector @Inject()(
   serviceConfiguration: ServiceConfiguration,
   requestSerializer: MdgRequestSerializer)(implicit ec: ExecutionContext) {
 
-  val mdgEndpoint: String = serviceConfiguration.mdgEndpoint
-
   def requestTransmission(request: TransmissionRequest)(implicit hc: HeaderCarrier): Future[Unit] = {
 
     val serializedRequest: String = requestSerializer.serialize(request)
     httpClient
-      .POSTString[HttpResponse](mdgEndpoint, serializedRequest, Seq((HeaderNames.CONTENT_TYPE, ContentTypes.XML)))
+      .POSTString[HttpResponse](
+        serviceConfiguration.mdgEndpoint,
+        serializedRequest,
+        Seq((HeaderNames.CONTENT_TYPE, ContentTypes.XML)))
       .map(_ => ())
   }
 
