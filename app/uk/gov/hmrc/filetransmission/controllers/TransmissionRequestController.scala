@@ -28,7 +28,6 @@ import uk.gov.hmrc.filetransmission.utils.{HttpUrlReads, UserAgentFilter}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext
-
 @Singleton()
 class TransmissionRequestController @Inject()(
   transmissionService: TransmissionService,

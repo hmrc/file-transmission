@@ -19,10 +19,13 @@ package uk.gov.hmrc.filetransmission
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.filetransmission.config.{PlayBasedServiceConfiguration, ServiceConfiguration}
+import uk.gov.hmrc.filetransmission.connector.{HttpCallbackSender}
+import uk.gov.hmrc.filetransmission.services.CallbackSender
 
 class FileTransmissionModule extends Module {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
     Seq(
-      bind[ServiceConfiguration].to[PlayBasedServiceConfiguration]
+      bind[ServiceConfiguration].to[PlayBasedServiceConfiguration],
+      bind[CallbackSender].to[HttpCallbackSender]
     )
 }

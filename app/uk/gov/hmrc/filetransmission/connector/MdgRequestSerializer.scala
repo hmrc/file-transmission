@@ -20,7 +20,7 @@ import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 
 class MdgRequestSerializer {
 
-  val pp = new scala.xml.PrettyPrinter(24, 4)
+  val printer = new scala.xml.PrettyPrinter(24, 4)
 
   def serialize(request: TransmissionRequest): String = {
 
@@ -30,9 +30,9 @@ class MdgRequestSerializer {
       </mdg:property>
 
     val xml =
-      <mdg:BatchFileInterfaceMetadata 
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-      xmlns:mdg="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema" 
+      <mdg:BatchFileInterfaceMetadata
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:mdg="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema"
       xsi:schemaLocation="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema BatchFileInterfaceMetadata-1.0.6.xsd"
       >
         <mdg:sourceSystem>MDTP</mdg:sourceSystem>
@@ -60,7 +60,7 @@ class MdgRequestSerializer {
         </mdg:destinations>
       </mdg:BatchFileInterfaceMetadata>
 
-    pp.format(xml)
+    printer.format(xml)
   }
 
 }

@@ -18,8 +18,10 @@ package uk.gov.hmrc.filetransmission.services
 
 import java.net.URL
 
-import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentMatchers, Mockito}
+import org.mockito.ArgumentMatchers.{any, eq => meq}
+import org.mockito.Mockito.{verify, when}
+import org.mockito.{ArgumentCaptor, Mockito}
+import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
 import uk.gov.hmrc.filetransmission.connector.MdgConnector
@@ -27,11 +29,11 @@ import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen with MockitoSugar {
+class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen with MockitoSugar with Eventually {
 
   "transmission request" should {
 
@@ -44,13 +46,18 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
       30
     )
 
-    "immediately return success and call MDG" in {
+    "immediately return success, call MDG and send successful callback to consuming service afterwards" in {
 
       val mdgConnector        = mock[MdgConnector]
-      val transmissionService = new TransmissionService(mdgConnector)
+      val notificationService = mock[CallbackSender]
+
+      val transmissionService = new TransmissionService(mdgConnector, notificationService)
 
       Given("MDG is working fine")
-      Mockito.when(mdgConnector.requestTransmission(any())(any())).thenReturn(Future.successful(()))
+      when(mdgConnector.requestTransmission(any())(any())).thenReturn(Future.successful(()))
+
+      And("consuming service is working fine")
+      when(notificationService.sendSuccessfulCallback(any())(any())).thenReturn(Future.successful(()))
 
       When("request made to transmission service")
       val result = Await.ready(transmissionService.request(request, "callingService")(HeaderCarrier()), 10 seconds)
@@ -59,19 +66,29 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
       result.value.get.isSuccess shouldBe true
 
       And("call to MDG has been made")
-      Mockito.verify(mdgConnector).requestTransmission(ArgumentMatchers.eq(request))(any())
+      eventually {
+        verify(mdgConnector).requestTransmission(meq(request))(any())
+      }
+      And("consuming service is notified")
+      eventually {
+        verify(notificationService).sendSuccessfulCallback(meq(request))(any())
+        Mockito.verifyNoMoreInteractions(notificationService)
+      }
 
     }
 
-    "immediately return success when MDG fails" in {
+    "immediately return success when MDG fails but sends failure callback to consuming service afterwards" in {
 
       val mdgConnector        = mock[MdgConnector]
-      val transmissionService = new TransmissionService(mdgConnector)
+      val notificationService = mock[CallbackSender]
+      val transmissionService = new TransmissionService(mdgConnector, notificationService)
 
       Given("MDG is faulty")
-      Mockito
-        .when(mdgConnector.requestTransmission(any())(any()))
-        .thenReturn(Future.failed(new Exception("PLanned exception")))
+      when(mdgConnector.requestTransmission(any())(any()))
+        .thenReturn(Future.failed(new Exception("Planned exception")))
+
+      And("consuming service is working fine")
+      when(notificationService.sendFailedCallback(any(), any())(any())).thenReturn(Future.successful(()))
 
       When("request made to transmission service")
       val result = Await.ready(transmissionService.request(request, "callingService")(HeaderCarrier()), 10 seconds)
@@ -80,8 +97,19 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
       result.value.get.isSuccess shouldBe true
 
       And("call to MDG has been made")
-      Mockito.verify(mdgConnector).requestTransmission(ArgumentMatchers.eq(request))(any())
+      eventually {
+        verify(mdgConnector).requestTransmission(meq(request))(any())
+      }
 
+      And("consuming service is notified about failure")
+      eventually {
+        val exceptionCaptor: ArgumentCaptor[Throwable] = ArgumentCaptor.forClass(classOf[Throwable])
+        verify(notificationService)
+          .sendFailedCallback(meq(request), exceptionCaptor.capture())(any())
+        exceptionCaptor.getValue.getMessage shouldBe "Planned exception"
+
+      }
+      Mockito.verifyNoMoreInteractions(notificationService)
     }
   }
 

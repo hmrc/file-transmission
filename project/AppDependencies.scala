@@ -8,7 +8,8 @@ object AppDependencies {
   val compile = Seq(
     ws,
     "uk.gov.hmrc"            %% "bootstrap-play-25" % "1.7.0",
-    "org.scala-lang.modules" %% "scala-xml"         % "1.1.0"
+    "org.scala-lang.modules" %% "scala-xml"         % "1.1.0",
+    "org.typelevel"     %% "cats-core"         % "1.0.1"
   )
 
   def test(scope: String = "test") = Seq(
