@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.filetransmission.services
 
+import cats.implicits._
 import javax.inject.Inject
 import play.api.Logger
 import uk.gov.hmrc.filetransmission.connector.MdgConnector
@@ -23,25 +24,38 @@ import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
-class TransmissionService @Inject()(mdgConnector: MdgConnector)(implicit ec: ExecutionContext) {
+class TransmissionService @Inject()(mdgConnector: MdgConnector, callbackSender: CallbackSender)(
+  implicit ec: ExecutionContext) {
 
   def request(request: TransmissionRequest, callingService: String)(implicit hc: HeaderCarrier): Future[Unit] = {
-    val result: Future[Unit] = mdgConnector.requestTransmission(request)
-    logResult(request, callingService, result)
+
+    for {
+      requestingResult <- mdgConnector.requestTransmission(request).attempt
+      _ = logResult(request, requestingResult, callingService)
+    } yield sendCallback(request, requestingResult, callingService)
 
     Future.successful((): Unit)
   }
 
-  private def logResult[T](request: TransmissionRequest, callingService: String, result: Future[T]): Future[T] = {
-    result.onComplete {
-      case Success(_) =>
-        Logger.info(s"Request ${describeRequest(request, callingService)} processed successfully")
-      case Failure(e) =>
-        Logger.warn(s"Processing request ${describeRequest(request, callingService)} failed", e)
+  private def logResult(request: TransmissionRequest, result: Either[Throwable, Unit], callingService: String): Unit =
+    result match {
+      case Right(_)    => Logger.info(s"Request ${describeRequest(request, callingService)} processed successfully")
+      case Left(error) => Logger.warn(s"Processing request ${describeRequest(request, callingService)} failed", error)
     }
-    result
+
+  private def sendCallback(request: TransmissionRequest, result: Either[Throwable, Unit], callingService: String)(
+    implicit hc: HeaderCarrier): Unit = {
+    val callbackSendingResult = result match {
+      case Right(_)    => callbackSender.sendSuccessfulCallback(request)
+      case Left(error) => callbackSender.sendFailedCallback(request, error)
+    }
+
+    callbackSendingResult.onFailure {
+      case t: Throwable =>
+        Logger.warn(s"Failed to send callback for request ${describeRequest(request, callingService)}", t)
+    }
+
   }
 
   private def describeRequest(request: TransmissionRequest, callingService: String): String =
