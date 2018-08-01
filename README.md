@@ -144,7 +144,7 @@ An unsuccessful POST request will receive a HTTP-error coded response (4xx, 5xx)
 
 **Please note that a successful response only means that the request has been parsed and stored for further processing. As MDG processing is performed asynchronously, the consuming service should wait until a callback is made from MDG before marking the batch as processed successfully.***
 
-After the request has been successfully passed to MDG, the consuming service retrieves the callback to URL specified in the request.
+After the request has been successfully passed to MDG, the consuming service retrieves callback to the URL specified in the request.
 The callback has the following format:
 ```
    {
@@ -153,7 +153,7 @@ The callback has the following format:
       "outcome":"SUCCESS"
    }
 ```
-In case passing the request to MDG failed, the consuming service retrieves the callback in the following format:
+In case passing the request to MDG failed, the consuming service retrieves callback in the following format:
 ```
     {
       "fileReference":"11370e18-6e24-453e-b45a-76d3e32ea33d",
