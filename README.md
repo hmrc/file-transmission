@@ -35,8 +35,8 @@ Services on the MDTP platform should use `file-transmission` to initiate the tra
 - `Upscan` notifies the consuming service of successful file upload and the relevant URL where the file is hosted and can be downloaded
 - Consuming service verifies ensures that all required files have been correctly uploaded by the user
 - Consuming service can now use `file-transmission` to notify MDG that these files are ready to be processed
-- After transmission service notified MDG, it sends callback to consuming service with confirmation (or the error) that request
-has been retrieved by MDG
+- `file-transmission` later sends a callback to the consuming service with either confirmation that the request
+has been accepted by MDG or a relevant error
 - MDG proceeds to asynchronously process the file batch as appropriate
 
 [[Back to the top]](#top)
@@ -64,7 +64,7 @@ Whitelisted consuming service first make a POST request to the `/file-transmissi
 The request should provide data about the batch, each file in the batch, and a callback URL that will be used to asynchronously notify the consuming service when MDG has processed the request. The consuming service may also provide additional optional metadata that it wants to pass through MDG.
 
 The body of a request for transmission of a file in a batch would typically comprise the below:
-- `callbackUrl` - URL provided by the consuming service by transmission service to notify that request was successfully passed to MDG. Please be aware that this should be HTTPS endpoint.
+- `callbackUrl` - URL provided by the consuming service, that is used by `file-transmission` to notify whether the request was accepted by MDG. Please be aware that this should be an HTTPS endpoint.
 - `requestTimeoutInSeconds` - duration that `file-transmission` will try to deliver file details to MDG before giving up
 - Batch information
   - `batchId` - unique batch identifier
