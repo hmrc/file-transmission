@@ -228,6 +228,9 @@ In addition to returning the `403` error, `file-transmission` will log details o
 
 #### Testing <a name="appendix__links__testing"></a>
 * [file-transmission-acceptance-tests](https://github.com/hmrc/file-transmisson-acceptance-tests) - acceptance tests of the `file-transmission` service
+* [file-transmission-callback-listener](https://github.com/hmrc/file-transmisson-callback-listener) - helper tool used by acceptance tests to capture callback requests
+* [mdg-stub](https://github.com/hmrc/mdg-stub) - mock of the MDG service that can be used for testing
+
 
 [[Back to the top]](#top)
 
