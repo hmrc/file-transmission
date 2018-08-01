@@ -19,7 +19,7 @@ package uk.gov.hmrc.filetransmission.controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentMatchers, Mockito}
+import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
@@ -42,7 +42,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
 
   val serviceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = Seq("VALID-AGENT")
-
+    override def allowedCallbackProtocols: Seq[String] = Seq("http", "https")
     override def mdgEndpoint: String = ???
   }
 
@@ -97,6 +97,32 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       "fileCount" -> 2
     ),
     "callbackUrl"             -> "invalidCallbackUrl",
+    "requestTimeoutInSeconds" -> 3000
+  )
+
+  val requestBodyWithInvalidCallbackUrlProtocol = Json.obj(
+    "file" -> Json.obj(
+      "reference" -> "file1",
+      "sequenceNumber" -> 1,
+      "name" -> "test.pdf",
+      "mimeType" -> "application/pdf",
+      "location" -> "http://127.0.0.1/location",
+      "checksum" -> "1234",
+      "size" -> 1024
+    ),
+    "interface" -> Json.obj(
+      "name" -> "sampleInterface",
+      "version" -> "1.0"
+    ),
+    "properties" -> Json.arr(
+      Json.obj("name" -> "key1", "value" -> "value1"),
+      Json.obj("name" -> "key2", "value" -> "value2")
+    ),
+    "batch" -> Json.obj(
+      "id" -> "batch1",
+      "fileCount" -> 2
+    ),
+    "callbackUrl" -> "ftp://127.0.0.1/callback",
     "requestTimeoutInSeconds" -> 3000
   )
 

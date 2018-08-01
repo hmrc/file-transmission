@@ -24,24 +24,18 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 class HttpUrlReadsSpec extends UnitSpec with Matchers {
 
-  "reads should properly read string https url" in {
-    HttpUrlReads.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(new URL("https://127.0.0.1"))
+  "reads should properly read string url" in {
+    HttpUrlReads.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(
+      new URL("https://127.0.0.1"))
   }
 
-  "reads should properly read string http url" in {
-    HttpUrlReads.reads(JsString("http://127.0.0.1")) shouldBe JsSuccess(new URL("http://127.0.0.1"))
+  "reads should fail if value is not a string" in {
+    HttpUrlReads.reads(JsNumber(1234)) shouldBe JsError("error.expected.url")
   }
 
-  "read should fail if value is not string" in {
-    HttpUrlReads.reads(JsNumber(1234)) shouldBe JsError("error.expected.http.url")
-  }
-
-  "read should fail if value is not http/https url" in {
-    HttpUrlReads.reads(JsString("ftp://127.0.0.1")) shouldBe JsError("error.expected.http.url")
-  }
-
-  "read should fail if value is not a valid url" in {
-    HttpUrlReads.reads(JsString("invalid-url")) shouldBe JsError("error.expected.http.url")
+  "reads should fail if value is not a valid url" in {
+    HttpUrlReads.reads(JsString("invalid-url")) shouldBe JsError(
+      "error.expected.url")
   }
 
 }

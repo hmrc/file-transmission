@@ -21,12 +21,22 @@ import org.apache.commons.lang3.StringUtils.isNotBlank
 import play.api.Configuration
 
 trait ServiceConfiguration {
-  def mdgEndpoint: String
-
   def allowedUserAgents: Seq[String]
+  def allowedCallbackProtocols: Seq[String]
+  def mdgEndpoint: String
 }
 
-class PlayBasedServiceConfiguration @Inject()(configuration: Configuration) extends ServiceConfiguration {
+class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
+    extends ServiceConfiguration {
+
+  override def allowedCallbackProtocols: Seq[String] =
+    configuration
+      .getString("callbackFilter.allowedProtocols")
+      .map {
+        _.split(",").toSeq
+          .filter(isNotBlank)
+      }
+      .getOrElse(Nil)
 
   override def allowedUserAgents: Seq[String] =
     configuration

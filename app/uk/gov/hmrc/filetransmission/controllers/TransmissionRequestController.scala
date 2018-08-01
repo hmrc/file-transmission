@@ -24,7 +24,7 @@ import play.api.mvc._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.TransmissionService
-import uk.gov.hmrc.filetransmission.utils.{HttpUrlReads, UserAgentFilter}
+import uk.gov.hmrc.filetransmission.utils.{CallbackProtocolFilter, HttpUrlReads, UserAgentFilter}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext
@@ -33,7 +33,8 @@ class TransmissionRequestController @Inject()(
   transmissionService: TransmissionService,
   override val configuration: ServiceConfiguration)(implicit ec: ExecutionContext)
     extends BaseController
-    with UserAgentFilter {
+    with UserAgentFilter
+    with CallbackProtocolFilter {
 
   implicit val urlReads: Reads[URL] = HttpUrlReads
 
@@ -47,15 +48,17 @@ class TransmissionRequestController @Inject()(
 
   implicit val transmissionRequestReads: Reads[TransmissionRequest] = Json.reads[TransmissionRequest]
 
-  def requestTransmission() = Action.async(parse.json) { implicit request: Request[JsValue] =>
-    onlyAllowedServices { serviceName =>
-      withJsonBody[TransmissionRequest] { transmissionRequest =>
-        for {
-          _ <- transmissionService.request(transmissionRequest, serviceName)
-        } yield (NoContent)
-
+  def requestTransmission() = Action.async(parse.json) {
+    implicit request: Request[JsValue] =>
+      onlyAllowedServices { serviceName =>
+        withJsonBody[TransmissionRequest] { transmissionRequest =>
+          onlyValidCallbackProtocols(transmissionRequest.callbackUrl) {
+            for {
+              _ <- transmissionService.request(transmissionRequest, serviceName)
+            } yield (NoContent)
+          }
+        }
       }
-    }
   }
 
 }
