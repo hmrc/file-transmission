@@ -24,15 +24,12 @@ import play.api.libs.json._
 
 object HttpUrlReads extends Reads[URL] {
 
-  private val acceptedProtocols = Set("http", "https")
-
   override def reads(json: JsValue): JsResult[URL] = json match {
     case JsString(s) => {
-      parseUrl(s).map(JsSuccess(_)).getOrElse(JsError(Seq(JsPath() -> Seq(ValidationError("error.expected.http.url")))))
+      parseUrl(s).map(JsSuccess(_)).getOrElse(JsError(Seq(JsPath() -> Seq(ValidationError("error.expected.url")))))
     }
-    case _ => JsError(Seq(JsPath() -> Seq(ValidationError("error.expected.http.url"))))
+    case _ => JsError(Seq(JsPath() -> Seq(ValidationError("error.expected.url"))))
   }
 
-  private def parseUrl(s: String): Option[URL] =
-    Try(new URL(s)).toOption.filter(url => acceptedProtocols.contains(url.getProtocol))
+  private def parseUrl(s: String): Option[URL] = Try(new URL(s)).toOption
 }

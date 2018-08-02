@@ -209,7 +209,7 @@ In addition to returning the `403` error, `file-transmission` will log details o
 #### Option #3: start each `file-transmission` dependency individually with sbt and relevant local code
 - In the `file-transmission` repository, execute the below to start the application with required configuration:
     ```
-    sbt "run 9575 -DuserAgentFilter.allowedUserAgents="file-transmission-acceptance-tests" -DmdgEndpoint="http://localhost:9576/mdg-stub/request""
+    sbt "run 9575 -DcallbackValidation.allowedProtocols="http,https" -DmdgEndpoint="http://localhost:9576/mdg-stub/request" -DuserAgentFilter.allowedUserAgents="file-transmission-acceptance-tests""
     ```
 - In the `mdg-stub` repository, execute the below to start the application:
     ```

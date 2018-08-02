@@ -27,13 +27,10 @@ import uk.gov.hmrc.filetransmission.services.TransmissionService
 import uk.gov.hmrc.filetransmission.utils.{HttpUrlReads, UserAgentFilter}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
-class TransmissionRequestController @Inject()(
-  transmissionService: TransmissionService,
-  override val configuration: ServiceConfiguration)(implicit ec: ExecutionContext)
-    extends BaseController
-    with UserAgentFilter {
+class TransmissionRequestController @Inject()(transmissionService: TransmissionService, requestValidator: RequestValidator,
+                                              override val configuration: ServiceConfiguration)(implicit ec: ExecutionContext) extends BaseController with UserAgentFilter {
 
   implicit val urlReads: Reads[URL] = HttpUrlReads
 
@@ -47,15 +44,20 @@ class TransmissionRequestController @Inject()(
 
   implicit val transmissionRequestReads: Reads[TransmissionRequest] = Json.reads[TransmissionRequest]
 
-  def requestTransmission() = Action.async(parse.json) { implicit request: Request[JsValue] =>
-    onlyAllowedServices { serviceName =>
-      withJsonBody[TransmissionRequest] { transmissionRequest =>
-        for {
-          _ <- transmissionService.request(transmissionRequest, serviceName)
-        } yield (NoContent)
-
+  def requestTransmission() = Action.async(parse.json) {
+    implicit request: Request[JsValue] =>
+      onlyAllowedServices { serviceName =>
+        withJsonBody[TransmissionRequest] { transmissionRequest =>
+          requestValidator.validate(transmissionRequest) match {
+            case Left(e) => Future.successful(BadRequest(e))
+            case _ => {
+              for {
+                _ <- transmissionService.request(transmissionRequest, serviceName)
+              } yield (NoContent)
+            }
+          }
+        }
       }
-    }
   }
 
 }

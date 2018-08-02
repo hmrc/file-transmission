@@ -19,12 +19,13 @@ package uk.gov.hmrc.filetransmission.controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentMatchers, Mockito}
+import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
+import uk.gov.hmrc.filetransmission.model.RequestValidator
 import uk.gov.hmrc.filetransmission.services.TransmissionService
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -38,11 +39,11 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
 
   implicit val materializer = ActorMaterializer()
 
-  implicit val timeout: akka.util.Timeout = 10 seconds
+  implicit val timeout: akka.util.Timeout = 10.seconds
 
   val serviceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = Seq("VALID-AGENT")
-
+    override def allowedCallbackProtocols: Seq[String] = Seq("http", "https")
     override def mdgEndpoint: String = ???
   }
 
@@ -102,6 +103,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
 
   "POST /transmission" should {
     "valid request should return 200" in {
+
       val request: FakeRequest[JsValue] = FakeRequest()
         .withHeaders(
           ("User-Agent", "VALID-AGENT"),
@@ -113,7 +115,10 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
         .when(transmissionService.request(any(), any())(any()))
         .thenReturn(Future.successful((): Unit))
 
-      val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
+      val requestValidator: RequestValidator = mock[RequestValidator]
+      Mockito.when(requestValidator.validate(any())).thenReturn(Right(()))
+
+      val controller = new TransmissionRequestController(transmissionService, requestValidator, serviceConfiguration)
       val result     = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -129,7 +134,10 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
           ("x-session-id", "some-session-id"))
         .withBody(Json.obj("invalid" -> "value"))
 
-      val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
+      val requestValidator: RequestValidator = mock[RequestValidator]
+      Mockito.when(requestValidator.validate(any())).thenReturn(Right(()))
+
+      val controller = new TransmissionRequestController(transmissionService, requestValidator, serviceConfiguration)
       val result     = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -137,7 +145,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       }
     }
 
-    "invalid white-listed request (invalid callback url) should return 400" in {
+    "invalid white-listed request (invalid callback url format) should return 400" in {
       val request: FakeRequest[JsValue] = FakeRequest()
         .withHeaders(
           ("User-Agent", "VALID-AGENT"),
@@ -145,11 +153,34 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
           ("x-session-id", "some-session-id"))
         .withBody(requestBodyWithInvalidCallbackUrl)
 
-      val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
+      val requestValidator: RequestValidator = mock[RequestValidator]
+      Mockito.when(requestValidator.validate(any())).thenReturn(Right(()))
+
+      val controller = new TransmissionRequestController(transmissionService, requestValidator, serviceConfiguration)
       val result     = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
         status(result) shouldBe Status.BAD_REQUEST
+      }
+    }
+
+    "invalid white-listed request (invalid callback url protocol) should return 400" in {
+      val request: FakeRequest[JsValue] = FakeRequest()
+        .withHeaders(
+          ("User-Agent", "VALID-AGENT"),
+          ("x-request-id", "some-request-id"),
+          ("x-session-id", "some-session-id"))
+        .withBody(validRequestBody)
+
+      val requestValidator: RequestValidator = mock[RequestValidator]
+      Mockito.when(requestValidator.validate(any())).thenReturn(Left("InvalidRequest"))
+
+      val controller = new TransmissionRequestController(transmissionService, requestValidator, serviceConfiguration)
+      val result     = controller.requestTransmission()(request)
+
+      withClue(Helpers.contentAsString(result)) {
+        status(result) shouldBe Status.BAD_REQUEST
+        Helpers.contentAsString(result) shouldBe "InvalidRequest"
       }
     }
 
@@ -161,7 +192,10 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
           ("x-session-id", "some-session-id"))
         .withBody(validRequestBody)
 
-      val controller = new TransmissionRequestController(transmissionService, serviceConfiguration)
+      val requestValidator: RequestValidator = mock[RequestValidator]
+      Mockito.when(requestValidator.validate(any())).thenReturn(Right(()))
+
+      val controller = new TransmissionRequestController(transmissionService, requestValidator, serviceConfiguration)
       val result     = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
