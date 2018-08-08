@@ -106,7 +106,7 @@ Here is an example of a request body for `file-transmission`:
 		"id": "fghij67890",
 		"fileCount": 10
 	},
-	"callbackUrl": "https://transmission-listener.public.mdtp/upscan-listener/listen",
+	"callbackUrl": "https://file-transmission-callback-listener.public.mdtp/file-transmission-callback-listener/listen",
 	"requestTimeoutInSeconds": 300,
 	"file": {				
 		"reference": "abcde12345",
