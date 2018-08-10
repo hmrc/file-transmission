@@ -18,13 +18,18 @@ package uk.gov.hmrc.filetransmission.model
 
 import java.net.URL
 
-case class TransmissionRequest(
+case class TransmissionRequestBody(
   batch: Batch,
   interface: Interface,
   file: File,
   properties: Seq[Property],
   callbackUrl: URL,
   requestTimeoutInSeconds: Int)
+
+case class TransmissionRequestEnvelope(
+  request: TransmissionRequestBody,
+  serviceName: String
+)
 
 case class Batch(id: String, fileCount: Int)
 

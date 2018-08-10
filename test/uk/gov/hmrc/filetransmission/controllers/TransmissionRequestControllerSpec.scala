@@ -33,7 +33,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
+class TransmissionRequestBodyControllerSpec extends UnitSpec with MockitoSugar {
 
   implicit val actorSystem = ActorSystem()
 
