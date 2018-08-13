@@ -22,20 +22,18 @@ import org.scalatest.Matchers
 import play.api.libs.json._
 import uk.gov.hmrc.play.test.UnitSpec
 
-class HttpUrlReadsSpec extends UnitSpec with Matchers {
+class HttpUrlFormatSpec extends UnitSpec with Matchers {
 
   "reads should properly read string url" in {
-    HttpUrlReads.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(
-      new URL("https://127.0.0.1"))
+    HttpUrlFormat.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(new URL("https://127.0.0.1"))
   }
 
   "reads should fail if value is not a string" in {
-    HttpUrlReads.reads(JsNumber(1234)) shouldBe JsError("error.expected.url")
+    HttpUrlFormat.reads(JsNumber(1234)) shouldBe JsError("error.expected.url")
   }
 
   "reads should fail if value is not a valid url" in {
-    HttpUrlReads.reads(JsString("invalid-url")) shouldBe JsError(
-      "error.expected.url")
+    HttpUrlFormat.reads(JsString("invalid-url")) shouldBe JsError("error.expected.url")
   }
 
 }

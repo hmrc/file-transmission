@@ -20,22 +20,41 @@ import cats.implicits._
 import javax.inject.Inject
 import play.api.Logger
 import uk.gov.hmrc.filetransmission.connector.MdgConnector
-import uk.gov.hmrc.filetransmission.model.TransmissionRequest
+import uk.gov.hmrc.filetransmission.model.{TransmissionRequest, TransmissionRequestEnvelope}
+import uk.gov.hmrc.filetransmission.services.queue._
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class TransmissionService @Inject()(mdgConnector: MdgConnector, callbackSender: CallbackSender)(
-  implicit ec: ExecutionContext) {
+  implicit ec: ExecutionContext)
+    extends QueueJob {
 
-  def request(request: TransmissionRequest, callingService: String)(implicit hc: HeaderCarrier): Future[Unit] = {
+  val maxRetries: Int = 4
 
-    for {
-      requestingResult <- mdgConnector.requestTransmission(request).attempt
-      _ = logResult(request, requestingResult, callingService)
-    } yield sendCallback(request, requestingResult, callingService)
+  override def process(item: TransmissionRequestEnvelope, triedSoFar: Int): Future[ProcessingResult] =
+    request(item.request, item.serviceName, triedSoFar)(HeaderCarrier())
 
-    Future.successful((): Unit)
+  def request(request: TransmissionRequest, callingService: String, triedSoFar: Integer)(
+    implicit hc: HeaderCarrier): Future[ProcessingResult] = {
+
+    val requestingResult = mdgConnector.requestTransmission(request).attempt
+
+    for (result <- requestingResult) yield {
+      logResult(request, result, callingService)
+      result match {
+        case Right(_) =>
+          sendSuccessfulCallback(request, callingService)
+          ProcessingSuccessful
+        case Left(error) if triedSoFar < maxRetries =>
+          ProcessingFailed(error)
+        case Left(error) =>
+          sendFailureCallback(request, error, callingService)
+          ProcessingFailedDoNotRetry(error)
+      }
+
+    }
+
   }
 
   private def logResult(request: TransmissionRequest, result: Either[Throwable, Unit], callingService: String): Unit =
@@ -44,12 +63,20 @@ class TransmissionService @Inject()(mdgConnector: MdgConnector, callbackSender: 
       case Left(error) => Logger.warn(s"Processing request ${describeRequest(request, callingService)} failed", error)
     }
 
-  private def sendCallback(request: TransmissionRequest, result: Either[Throwable, Unit], callingService: String)(
+  private def sendSuccessfulCallback(request: TransmissionRequest, callingService: String)(
     implicit hc: HeaderCarrier): Unit = {
-    val callbackSendingResult = result match {
-      case Right(_)    => callbackSender.sendSuccessfulCallback(request)
-      case Left(error) => callbackSender.sendFailedCallback(request, error)
+    val callbackSendingResult = callbackSender.sendSuccessfulCallback(request)
+    callbackSendingResult.onFailure {
+      case t: Throwable =>
+        Logger.warn(s"Failed to send callback for request ${describeRequest(request, callingService)}", t)
     }
+
+  }
+
+  private def sendFailureCallback(request: TransmissionRequest, error: Throwable, callingService: String)(
+    implicit hc: HeaderCarrier): Unit = {
+
+    val callbackSendingResult = callbackSender.sendFailedCallback(request, error)
 
     callbackSendingResult.onFailure {
       case t: Throwable =>
@@ -60,5 +87,4 @@ class TransmissionService @Inject()(mdgConnector: MdgConnector, callbackSender: 
 
   private def describeRequest(request: TransmissionRequest, callingService: String): String =
     s"consumingService: [$callingService] fileReference: [${request.file.reference}] batchId: [${request.batch.id}]"
-
 }

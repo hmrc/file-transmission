@@ -60,7 +60,7 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
       when(notificationService.sendSuccessfulCallback(any())(any())).thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result = Await.ready(transmissionService.request(request, "callingService")(HeaderCarrier()), 10 seconds)
+      val result = Await.ready(transmissionService.request(request, "callingService", 4)(HeaderCarrier()), 10 seconds)
 
       Then("immediate successful response is returned")
       result.value.get.isSuccess shouldBe true
@@ -91,7 +91,7 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
       when(notificationService.sendFailedCallback(any(), any())(any())).thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result = Await.ready(transmissionService.request(request, "callingService")(HeaderCarrier()), 10 seconds)
+      val result = Await.ready(transmissionService.request(request, "callingService", 4)(HeaderCarrier()), 10 seconds)
 
       Then("immediate successful response is returned")
       result.value.get.isSuccess shouldBe true
