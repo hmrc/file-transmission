@@ -32,7 +32,11 @@ case class TransmissionRequest(
 case class TransmissionRequestEnvelope(
   request: TransmissionRequest,
   serviceName: String
-)
+) {
+  def describe =
+    s"consumingService: [$serviceName] fileReference: [${request.file.reference}] batchId: [${request.batch.id}]"
+
+}
 
 case class Batch(id: String, fileCount: Int)
 

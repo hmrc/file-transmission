@@ -23,14 +23,14 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
-import uk.gov.hmrc.filetransmission.services.queue.RetryQueue
+import uk.gov.hmrc.filetransmission.services.queue.{WorkItemService}
 import uk.gov.hmrc.filetransmission.utils.{HttpUrlFormat, UserAgentFilter}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class TransmissionRequestController @Inject()(
-  transmissionService: RetryQueue,
+  workItemService: WorkItemService,
   requestValidator: RequestValidator,
   override val configuration: ServiceConfiguration)(implicit ec: ExecutionContext)
     extends BaseController
@@ -55,7 +55,7 @@ class TransmissionRequestController @Inject()(
           case Left(e) => Future.successful(BadRequest(e))
           case _ =>
             for {
-              _ <- transmissionService.enqueue(TransmissionRequestEnvelope(transmissionRequest, serviceName))
+              _ <- workItemService.enqueue(TransmissionRequestEnvelope(transmissionRequest, serviceName))
             } yield NoContent
         }
       }

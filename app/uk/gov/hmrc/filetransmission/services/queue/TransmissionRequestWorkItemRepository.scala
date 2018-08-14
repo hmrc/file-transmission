@@ -15,6 +15,7 @@
  */
 
 package uk.gov.hmrc.filetransmission.services.queue
+
 import javax.inject.Inject
 import org.joda.time.{DateTime, Duration}
 import play.api.libs.functional.syntax.{unlift, _}
@@ -22,11 +23,14 @@ import play.api.libs.json.{Format, Reads, __}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
+import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.workitem.{WorkItem, _}
 
-class RetryQueueRepository @Inject()(mongoComponent: ReactiveMongoComponent)
+class TransmissionRequestWorkItemRepository @Inject()(
+  mongoComponent: ReactiveMongoComponent,
+  configuration: ServiceConfiguration)
     extends WorkItemRepository[TransmissionRequestEnvelope, BSONObjectID](
       collectionName = "transmission-request",
       mongo          = mongoComponent.mongoConnector.db,
@@ -37,7 +41,7 @@ class RetryQueueRepository @Inject()(mongoComponent: ReactiveMongoComponent)
 
   override def inProgressRetryAfterProperty: String = ??? // we don't use this, we override inProgressRetryAfter instead
 
-  override lazy val inProgressRetryAfter: Duration = Duration.standardMinutes(30)
+  override lazy val inProgressRetryAfter: Duration = Duration.millis(configuration.inFlightLockDuration.toMillis)
 
   override def workItemFields = new WorkItemFieldNames {
     val receivedAt   = "modifiedDetails.createdAt"

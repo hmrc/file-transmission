@@ -36,4 +36,8 @@ class HttpUrlFormatSpec extends UnitSpec with Matchers {
     HttpUrlFormat.reads(JsString("invalid-url")) shouldBe JsError("error.expected.url")
   }
 
+  "should properly write url" in {
+    HttpUrlFormat.writes(new URL("https://127.0.0.1")) shouldBe JsString("https://127.0.0.1")
+  }
+
 }

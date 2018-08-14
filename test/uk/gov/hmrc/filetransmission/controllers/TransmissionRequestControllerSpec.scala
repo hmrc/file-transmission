@@ -26,7 +26,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.RequestValidator
-import uk.gov.hmrc.filetransmission.services.queue.RetryQueue
+import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -42,12 +42,17 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
   implicit val timeout: akka.util.Timeout = 10.seconds
 
   val serviceConfiguration = new ServiceConfiguration {
-    override def allowedUserAgents                     = Seq("VALID-AGENT")
-    override def allowedCallbackProtocols: Seq[String] = Seq("http", "https")
-    override def mdgEndpoint: String                   = ???
+    override def allowedUserAgents                        = Seq("VALID-AGENT")
+    override def mdgEndpoint: String                      = ???
+    override def queuePollingInterval: Duration           = ???
+    override def queueRetryAfterFailureInterval: Duration = ???
+    override def inFlightLockDuration: Duration           = ???
+    override def initialBackoffAfterFailure: Duration     = ???
+    override def maxRetryCount: Int                       = ???
+    override def allowedCallbackProtocols: Seq[String]    = Seq("http", "https")
   }
 
-  val transmissionQueue = mock[RetryQueue]
+  val transmissionQueue = mock[WorkItemService]
 
   val validRequestBody = Json.obj(
     "file" -> Json.obj(

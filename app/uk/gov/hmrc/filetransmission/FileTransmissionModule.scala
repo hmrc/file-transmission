@@ -20,15 +20,15 @@ import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.filetransmission.config.{PlayBasedServiceConfiguration, ServiceConfiguration}
 import uk.gov.hmrc.filetransmission.connector.HttpCallbackSender
-import uk.gov.hmrc.filetransmission.services.{CallbackSender, TransmissionService}
-import uk.gov.hmrc.filetransmission.services.queue.{QueueJob, RetryQueueProcessingScheduler}
+import uk.gov.hmrc.filetransmission.services.queue.{QueueJob, WorkItemProcessingScheduler}
+import uk.gov.hmrc.filetransmission.services.{CallbackSender, TransmissionRequestProcessingJob}
 
 class FileTransmissionModule extends Module {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
     Seq(
       bind[ServiceConfiguration].to[PlayBasedServiceConfiguration],
       bind[CallbackSender].to[HttpCallbackSender],
-      bind[QueueJob].to[TransmissionService],
-      bind[RetryQueueProcessingScheduler].toSelf.eagerly()
+      bind[QueueJob].to[TransmissionRequestProcessingJob],
+      bind[WorkItemProcessingScheduler].toSelf.eagerly()
     )
 }

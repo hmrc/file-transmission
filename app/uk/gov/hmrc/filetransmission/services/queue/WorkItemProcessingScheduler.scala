@@ -15,25 +15,25 @@
  */
 
 package uk.gov.hmrc.filetransmission.services.queue
+
 import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import akka.event.Logging
 import javax.inject.Inject
 import play.api.inject.ApplicationLifecycle
-import uk.gov.hmrc.filetransmission.services.TransmissionService
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 
 import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.{Failure, Success}
-import scala.concurrent.duration._
 
-class RetryQueueProcessingScheduler @Inject()(queueProcessor: RetryQueue, transmissionService: TransmissionService)(
+class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, configuration: ServiceConfiguration)(
   implicit actorSystem: ActorSystem,
   applicationLifecycle: ApplicationLifecycle) {
 
-  val pollingInterval: FiniteDuration = 1 second
+  val pollingInterval: FiniteDuration = FiniteDuration.apply(configuration.queuePollingInterval.toMillis, MILLISECONDS)
 
-  val retryAfterFailureInterval: FiniteDuration = 30 seconds
+  val retryAfterFailureInterval: FiniteDuration =
+    FiniteDuration.apply(configuration.queueRetryAfterFailureInterval.toMillis, MILLISECONDS)
 
   case object Poll
 

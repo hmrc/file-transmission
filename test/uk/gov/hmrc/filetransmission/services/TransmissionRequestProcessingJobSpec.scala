@@ -24,16 +24,22 @@ import org.mockito.{ArgumentCaptor, Mockito}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
+import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.MdgConnector
 import uk.gov.hmrc.filetransmission.model._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.filetransmission.services.queue.{ProcessingFailed, ProcessingFailedDoNotRetry, ProcessingSuccessful}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen with MockitoSugar with Eventually {
+class TransmissionRequestProcessingJobSpec
+    extends UnitSpec
+    with Matchers
+    with GivenWhenThen
+    with MockitoSugar
+    with Eventually {
 
   "transmission request" should {
 
@@ -50,8 +56,10 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
 
       val mdgConnector        = mock[MdgConnector]
       val notificationService = mock[CallbackSender]
+      val configuration       = mock[ServiceConfiguration]
+      when(configuration.maxRetryCount).thenReturn(4)
 
-      val transmissionService = new TransmissionService(mdgConnector, notificationService)
+      val transmissionService = new TransmissionRequestProcessingJob(mdgConnector, notificationService, configuration)
 
       Given("MDG is working fine")
       when(mdgConnector.requestTransmission(any())(any())).thenReturn(Future.successful(()))
@@ -60,10 +68,11 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
       when(notificationService.sendSuccessfulCallback(any())(any())).thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result = Await.ready(transmissionService.request(request, "callingService", 4)(HeaderCarrier()), 10 seconds)
+      val result =
+        Await.result(transmissionService.process(TransmissionRequestEnvelope(request, "callingService"), 4), 10 seconds)
 
       Then("immediate successful response is returned")
-      result.value.get.isSuccess shouldBe true
+      result shouldBe ProcessingSuccessful
 
       And("call to MDG has been made")
       eventually {
@@ -77,11 +86,14 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
 
     }
 
-    "immediately return success when MDG fails but sends failure callback to consuming service afterwards" in {
+    "if call to MDG has failed but still can be retried, do not send callback but report error" in {
 
       val mdgConnector        = mock[MdgConnector]
       val notificationService = mock[CallbackSender]
-      val transmissionService = new TransmissionService(mdgConnector, notificationService)
+      val configuration       = mock[ServiceConfiguration]
+
+      when(configuration.maxRetryCount).thenReturn(4)
+      val transmissionService = new TransmissionRequestProcessingJob(mdgConnector, notificationService, configuration)
 
       Given("MDG is faulty")
       when(mdgConnector.requestTransmission(any())(any()))
@@ -91,10 +103,43 @@ class TransmissionServiceSpec extends UnitSpec with Matchers with GivenWhenThen 
       when(notificationService.sendFailedCallback(any(), any())(any())).thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result = Await.ready(transmissionService.request(request, "callingService", 4)(HeaderCarrier()), 10 seconds)
+      val result =
+        Await.result(transmissionService.process(TransmissionRequestEnvelope(request, "callingService"), 0), 10 seconds)
 
-      Then("immediate successful response is returned")
-      result.value.get.isSuccess shouldBe true
+      Then("response saying that processing failed should be returned")
+      result shouldBe a[ProcessingFailed]
+
+      And("call to MDG has been made")
+      eventually {
+        verify(mdgConnector).requestTransmission(meq(request))(any())
+      }
+
+      And("no callback is sent")
+      Mockito.verifyZeroInteractions(notificationService)
+
+    }
+
+    "if call to MDG has failed but cannot be retried, send failure callback and report a persistent error" in {
+
+      val mdgConnector        = mock[MdgConnector]
+      val notificationService = mock[CallbackSender]
+      val configuration       = mock[ServiceConfiguration]
+      when(configuration.maxRetryCount).thenReturn(4)
+      val transmissionService = new TransmissionRequestProcessingJob(mdgConnector, notificationService, configuration)
+
+      Given("MDG is faulty")
+      when(mdgConnector.requestTransmission(any())(any()))
+        .thenReturn(Future.failed(new Exception("Planned exception")))
+
+      And("consuming service is working fine")
+      when(notificationService.sendFailedCallback(any(), any())(any())).thenReturn(Future.successful(()))
+
+      When("request made to transmission service")
+      val result =
+        Await.result(transmissionService.process(TransmissionRequestEnvelope(request, "callingService"), 4), 10 seconds)
+
+      Then("response saying that processing failed and no more retry attemts are required, should be returned")
+      result shouldBe a[ProcessingFailedDoNotRetry]
 
       And("call to MDG has been made")
       eventually {

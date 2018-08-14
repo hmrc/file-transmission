@@ -15,10 +15,12 @@
  */
 
 package uk.gov.hmrc.filetransmission.services.queue
+
 import cats.data.OptionT
 import cats.implicits._
 import javax.inject.Inject
 import org.joda.time.{DateTime, Duration}
+import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.workitem._
 
@@ -33,7 +35,10 @@ trait QueueJob {
   def process(item: TransmissionRequestEnvelope, triedSoFar: Int): Future[ProcessingResult]
 }
 
-class RetryQueue @Inject()(repository: RetryQueueRepository, queueJob: QueueJob)(implicit ec: ExecutionContext) {
+class WorkItemService @Inject()(
+  repository: TransmissionRequestWorkItemRepository,
+  queueJob: QueueJob,
+  configuration: ServiceConfiguration)(implicit ec: ExecutionContext) {
 
   def enqueue(request: TransmissionRequestEnvelope): Future[Unit] =
     repository.pushNew(request, DateTime.now()).map(_ => ())
@@ -67,9 +72,12 @@ class RetryQueue @Inject()(repository: RetryQueueRepository, queueJob: QueueJob)
     }
   }
 
-  private def nextAvailabilityTime(workItem: WorkItem[TransmissionRequestEnvelope]): DateTime = {
-    val delta = Duration.standardSeconds(2).multipliedBy(Math.pow(2, workItem.failureCount).toInt)
-    DateTime.now().plus(delta)
+  private def nextAvailabilityTime[T](workItem: WorkItem[T]): DateTime = {
+    val delay = Duration
+      .millis(configuration.initialBackoffAfterFailure.toMillis)
+      .multipliedBy(Math.pow(2, workItem.failureCount).toInt)
+
+    DateTime.now().plus(delay)
   }
 
 }
