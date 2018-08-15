@@ -87,6 +87,7 @@ class WorkItemProcessingSchedulerSpec
       override def inFlightLockDuration: Duration           = ???
       override def initialBackoffAfterFailure: Duration     = ???
       override def maxRetryCount: Int                       = ???
+      override def allowedCallbackProtocols: Seq[String]    = ???
     }
 
     "process all requests waiting in the queue" in {
