@@ -26,7 +26,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.RequestValidator
-import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
+import uk.gov.hmrc.filetransmission.services.queue.MongoBackedWorkItemService
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -52,7 +52,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
     override def allowedCallbackProtocols: Seq[String]    = Seq("http", "https")
   }
 
-  val transmissionQueue = mock[WorkItemService]
+  val transmissionQueue = mock[MongoBackedWorkItemService]
 
   val validRequestBody = Json.obj(
     "file" -> Json.obj(

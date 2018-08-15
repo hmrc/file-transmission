@@ -20,7 +20,7 @@ import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.filetransmission.config.{PlayBasedServiceConfiguration, ServiceConfiguration}
 import uk.gov.hmrc.filetransmission.connector.HttpCallbackSender
-import uk.gov.hmrc.filetransmission.services.queue.{QueueJob, WorkItemProcessingScheduler}
+import uk.gov.hmrc.filetransmission.services.queue.{MongoBackedWorkItemService, QueueJob, WorkItemProcessingScheduler, WorkItemService}
 import uk.gov.hmrc.filetransmission.services.{CallbackSender, TransmissionRequestProcessingJob}
 
 class FileTransmissionModule extends Module {
@@ -29,6 +29,7 @@ class FileTransmissionModule extends Module {
       bind[ServiceConfiguration].to[PlayBasedServiceConfiguration],
       bind[CallbackSender].to[HttpCallbackSender],
       bind[QueueJob].to[TransmissionRequestProcessingJob],
-      bind[WorkItemProcessingScheduler].toSelf.eagerly()
+      bind[WorkItemProcessingScheduler].toSelf.eagerly(),
+      bind[WorkItemService].to[MongoBackedWorkItemService]
     )
 }

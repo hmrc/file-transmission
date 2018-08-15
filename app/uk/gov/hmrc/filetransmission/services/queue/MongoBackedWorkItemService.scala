@@ -35,10 +35,17 @@ trait QueueJob {
   def process(item: TransmissionRequestEnvelope, triedSoFar: Int): Future[ProcessingResult]
 }
 
-class WorkItemService @Inject()(
+trait WorkItemService {
+  def enqueue(request: TransmissionRequestEnvelope): Future[Unit]
+
+  def processOne(): Future[Boolean]
+}
+
+class MongoBackedWorkItemService @Inject()(
   repository: TransmissionRequestWorkItemRepository,
   queueJob: QueueJob,
-  configuration: ServiceConfiguration)(implicit ec: ExecutionContext) {
+  configuration: ServiceConfiguration)(implicit ec: ExecutionContext)
+    extends WorkItemService {
 
   def enqueue(request: TransmissionRequestEnvelope): Future[Unit] =
     repository.pushNew(request, DateTime.now()).map(_ => ())

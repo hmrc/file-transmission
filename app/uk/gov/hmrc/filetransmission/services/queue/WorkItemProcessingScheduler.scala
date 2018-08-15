@@ -30,10 +30,10 @@ class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, con
   implicit actorSystem: ActorSystem,
   applicationLifecycle: ApplicationLifecycle) {
 
-  val pollingInterval: FiniteDuration = FiniteDuration.apply(configuration.queuePollingInterval.toMillis, MILLISECONDS)
+  val pollingInterval: FiniteDuration = FiniteDuration(configuration.queuePollingInterval.toMillis, MILLISECONDS)
 
   val retryAfterFailureInterval: FiniteDuration =
-    FiniteDuration.apply(configuration.queueRetryAfterFailureInterval.toMillis, MILLISECONDS)
+    FiniteDuration(configuration.queueRetryAfterFailureInterval.toMillis, MILLISECONDS)
 
   case object Poll
 
@@ -50,6 +50,7 @@ class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, con
           case Success(true) =>
             self ! Poll
           case Success(false) =>
+            log.info("Waiting")
             context.system.scheduler.scheduleOnce(pollingInterval, self, Poll)
           case Failure(f) =>
             log.error(f, s"Queue processing failed")
@@ -59,12 +60,15 @@ class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, con
 
   }
 
-  private val pollingActor = actorSystem.actorOf(Props(new ContinuousPollingActor()), "Poller")
+  private val pollingActor = actorSystem.actorOf(Props(new ContinuousPollingActor()))
 
   pollingActor ! Poll
 
-  applicationLifecycle.addStopHook { () =>
+  def shutDown() =
     pollingActor ! PoisonPill
+
+  applicationLifecycle.addStopHook { () =>
+    shutDown()
     Future.successful(())
   }
 
