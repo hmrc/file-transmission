@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.filetransmission
 
+import java.time.Clock
+
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.filetransmission.config.{PlayBasedServiceConfiguration, ServiceConfiguration}
@@ -30,6 +32,7 @@ class FileTransmissionModule extends Module {
       bind[CallbackSender].to[HttpCallbackSender],
       bind[QueueJob].to[TransmissionRequestProcessingJob],
       bind[WorkItemProcessingScheduler].toSelf.eagerly(),
-      bind[WorkItemService].to[MongoBackedWorkItemService]
+      bind[WorkItemService].to[MongoBackedWorkItemService],
+      bind[Clock].toInstance(Clock.systemUTC())
     )
 }

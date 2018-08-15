@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 
+import java.time.Clock
+
 import javax.inject.Inject
 import org.joda.time.{DateTime, Duration}
 import play.api.libs.functional.syntax.{unlift, _}
@@ -25,19 +27,21 @@ import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
+import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.workitem.{WorkItem, _}
 
 class TransmissionRequestWorkItemRepository @Inject()(
   mongoComponent: ReactiveMongoComponent,
-  configuration: ServiceConfiguration)
+  configuration: ServiceConfiguration,
+  clock: Clock)
     extends WorkItemRepository[TransmissionRequestEnvelope, BSONObjectID](
       collectionName = "transmission-request",
       mongo          = mongoComponent.mongoConnector.db,
       itemFormat     = WorkItemFormat.workItemMongoFormat[TransmissionRequestEnvelope]
     ) {
 
-  override def now: DateTime = DateTime.now()
+  override def now: DateTime = JodaTimeConverters.toYoda(clock.instant(), clock.getZone)
 
   override def inProgressRetryAfterProperty: String = ??? // we don't use this, we override inProgressRetryAfter instead
 
