@@ -38,8 +38,15 @@ class MdgConnectorSpec extends UnitSpec with GivenWhenThen with MockitoSugar wit
 
   val serviceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = ???
-    override def allowedCallbackProtocols: Seq[String] = ???
-    override def mdgEndpoint: String = "http://127.0.0.1:11111/mdg"
+
+    override def mdgEndpoint: String                      = "http://127.0.0.1:11111/mdg"
+    override def queuePollingInterval: Duration           = ???
+    override def queueRetryAfterFailureInterval: Duration = ???
+    override def inFlightLockDuration: Duration           = ???
+    override def initialBackoffAfterFailure: Duration     = ???
+    override def maxRetryCount: Int                       = ???
+    override def allowedCallbackProtocols: Seq[String]    = ???
+
   }
 
   val request: TransmissionRequest = TransmissionRequest(
