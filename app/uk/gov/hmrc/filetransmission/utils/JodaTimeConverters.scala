@@ -16,16 +16,20 @@
 
 package uk.gov.hmrc.filetransmission.utils
 import java.time.{Instant, ZoneId}
+import java.util.TimeZone
 
 import org.joda.time.{DateTime, DateTimeZone}
 
 object JodaTimeConverters {
 
   def toYoda(dateTime: java.time.ZonedDateTime) =
-    new DateTime(dateTime.toInstant.toEpochMilli, DateTimeZone.forID(dateTime.getZone.getId))
+    new DateTime(
+      dateTime.toInstant.toEpochMilli,
+      DateTimeZone.forTimeZone(TimeZone.getTimeZone(dateTime.getZone)))
 
   def toYoda(instant: Instant, zone: ZoneId) =
-    new DateTime(instant.toEpochMilli, DateTimeZone.forID(zone.getId))
+    new DateTime(instant.toEpochMilli,
+                 DateTimeZone.forTimeZone(TimeZone.getTimeZone(zone)))
 
   def fromYoda(dateTime: DateTime) = dateTime.toDate.toInstant
 
