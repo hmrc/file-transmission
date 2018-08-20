@@ -29,7 +29,7 @@ class FileTransmissionAcceptanceTests
       "auditing.enabled" -> "false",
       "mdgEndpoint" -> "http://localhost:11111/mdg",
       "callbackValidation.allowedProtocols" -> "http",
-      "initialBackoffAfterFailure" -> "50 milliseconds",
+      "initialBackoffAfterFailure" -> "75 milliseconds",
       "maxRetryCount" -> "2"
     )
     .build()
