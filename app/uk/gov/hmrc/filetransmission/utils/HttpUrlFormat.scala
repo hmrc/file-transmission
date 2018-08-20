@@ -22,7 +22,7 @@ import scala.util.Try
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 
-object HttpUrlReads extends Reads[URL] {
+object HttpUrlFormat extends Format[URL] {
 
   override def reads(json: JsValue): JsResult[URL] = json match {
     case JsString(s) => {
@@ -32,4 +32,6 @@ object HttpUrlReads extends Reads[URL] {
   }
 
   private def parseUrl(s: String): Option[URL] = Try(new URL(s)).toOption
+
+  override def writes(o: URL): JsValue = JsString(o.toString)
 }

@@ -18,6 +18,9 @@ package uk.gov.hmrc.filetransmission.model
 
 import java.net.URL
 
+import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.filetransmission.utils.HttpUrlFormat
+
 case class TransmissionRequest(
   batch: Batch,
   interface: Interface,
@@ -25,6 +28,15 @@ case class TransmissionRequest(
   properties: Seq[Property],
   callbackUrl: URL,
   requestTimeoutInSeconds: Int)
+
+case class TransmissionRequestEnvelope(
+  request: TransmissionRequest,
+  serviceName: String
+) {
+  def describe =
+    s"consumingService: [$serviceName] fileReference: [${request.file.reference}] batchId: [${request.batch.id}]"
+
+}
 
 case class Batch(id: String, fileCount: Int)
 
@@ -44,3 +56,23 @@ case class Property(
   name: String,
   value: String
 )
+
+object TransmissionRequest {
+  implicit val urlReads: Format[URL] = HttpUrlFormat
+
+  implicit val fileReads: Format[File] = Json.format[File]
+
+  implicit val propertyReads: Format[Property] = Json.format[Property]
+
+  implicit val interfaceReads: Format[Interface] = Json.format[Interface]
+
+  implicit val batchReads: Format[Batch] = Json.format[Batch]
+
+  implicit val transmissionRequestReads: Format[TransmissionRequest] = Json.format[TransmissionRequest]
+
+}
+
+object TransmissionRequestEnvelope {
+  implicit val transmissionRequestEnvelopeFormat: Format[TransmissionRequestEnvelope] =
+    Json.format[TransmissionRequestEnvelope]
+}

@@ -159,7 +159,7 @@ In case passing the request to MDG failed, the consuming service retrieves callb
       "fileReference":"11370e18-6e24-453e-b45a-76d3e32ea33d",
       "batchId":"32230e18-6e24-453e-b45a-76d3e32ea33d",
       "outcome":"FAILURE"
-      "errorDetail": "text field from MDG"
+      "errorDetails": "text field from MDG"
    }
 ```
 

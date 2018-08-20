@@ -15,27 +15,22 @@
  */
 
 package uk.gov.hmrc.filetransmission.utils
+import java.time.{Instant, ZoneId}
+import java.util.TimeZone
 
-import java.net.URL
+import org.joda.time.{DateTime, DateTimeZone}
 
-import org.scalatest.Matchers
-import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
+object JodaTimeConverters {
 
-class HttpUrlReadsSpec extends UnitSpec with Matchers {
+  def toYoda(dateTime: java.time.ZonedDateTime) =
+    new DateTime(
+      dateTime.toInstant.toEpochMilli,
+      DateTimeZone.forTimeZone(TimeZone.getTimeZone(dateTime.getZone)))
 
-  "reads should properly read string url" in {
-    HttpUrlReads.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(
-      new URL("https://127.0.0.1"))
-  }
+  def toYoda(instant: Instant, zone: ZoneId) =
+    new DateTime(instant.toEpochMilli,
+                 DateTimeZone.forTimeZone(TimeZone.getTimeZone(zone)))
 
-  "reads should fail if value is not a string" in {
-    HttpUrlReads.reads(JsNumber(1234)) shouldBe JsError("error.expected.url")
-  }
-
-  "reads should fail if value is not a valid url" in {
-    HttpUrlReads.reads(JsString("invalid-url")) shouldBe JsError(
-      "error.expected.url")
-  }
+  def fromYoda(dateTime: DateTime) = dateTime.toDate.toInstant
 
 }
