@@ -84,6 +84,14 @@ class MdgConnectorSpec extends UnitSpec with GivenWhenThen with MockitoSugar wit
             .withStatus(503)
         ))
 
+  private def stubMdgToReturnBadRequestResponse(): Unit =
+    mdgServer.stubFor(
+      post(urlEqualTo("/mdg"))
+        .willReturn(
+          aResponse()
+            .withStatus(400)
+        ))
+
   "MDG Connector" should {
     "return successful response when call to MDG was successful" in {
 
@@ -94,9 +102,7 @@ class MdgConnectorSpec extends UnitSpec with GivenWhenThen with MockitoSugar wit
 
       val connector = new MdgConnector(httpClient, serviceConfiguration, serializer)
 
-      val result =
-        Await.ready(connector.requestTransmission(request)(HeaderCarrier()), 10 seconds)
-      result.value.get.isSuccess shouldBe true
+      Await.result(connector.requestTransmission(request)(HeaderCarrier()), 10 seconds) shouldBe MdgRequestSuccessful
     }
 
     "return failed response when call to MDG failed" in {
@@ -107,9 +113,20 @@ class MdgConnectorSpec extends UnitSpec with GivenWhenThen with MockitoSugar wit
 
       val connector = new MdgConnector(httpClient, serviceConfiguration, serializer)
 
+      Await.result(connector.requestTransmission(request)(HeaderCarrier()), 10 seconds) shouldBe a[MdgRequestError]
+    }
+
+    "return fatally failed response when call to MDG failed and returned HTTP 400 bad request" in {
+      stubMdgToReturnBadRequestResponse()
+
+      val serializer = mock[MdgRequestSerializer]
+      Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
+
+      val connector = new MdgConnector(httpClient, serviceConfiguration, serializer)
+
       val result =
         Await.ready(connector.requestTransmission(request)(HeaderCarrier()), 10 seconds)
-      result.value.get.isFailure shouldBe true
+      Await.result(connector.requestTransmission(request)(HeaderCarrier()), 10 seconds) shouldBe a[MdgRequestFatalError]
     }
   }
 

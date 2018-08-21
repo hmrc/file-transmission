@@ -25,7 +25,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.connector.MdgConnector
+import uk.gov.hmrc.filetransmission.connector.{MdgConnector, MdgRequestError, MdgRequestFatalError, MdgRequestSuccessful}
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.queue.{ProcessingFailed, ProcessingFailedDoNotRetry, ProcessingSuccessful}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -62,7 +62,7 @@ class TransmissionRequestProcessingJobSpec
       val transmissionService = new TransmissionRequestProcessingJob(mdgConnector, notificationService, configuration)
 
       Given("MDG is working fine")
-      when(mdgConnector.requestTransmission(any())(any())).thenReturn(Future.successful(()))
+      when(mdgConnector.requestTransmission(any())(any())).thenReturn(Future.successful((MdgRequestSuccessful)))
 
       And("consuming service is working fine")
       when(notificationService.sendSuccessfulCallback(any())(any())).thenReturn(Future.successful(()))
@@ -97,7 +97,7 @@ class TransmissionRequestProcessingJobSpec
 
       Given("MDG is faulty")
       when(mdgConnector.requestTransmission(any())(any()))
-        .thenReturn(Future.failed(new Exception("Planned exception")))
+        .thenReturn(Future.successful(MdgRequestError(new Exception("Planned exception"))))
 
       And("consuming service is working fine")
       when(notificationService.sendFailedCallback(any(), any())(any())).thenReturn(Future.successful(()))
@@ -119,6 +119,46 @@ class TransmissionRequestProcessingJobSpec
 
     }
 
+    "if call to MDG has failed with non-recoverable error, send callback and do not retry" in {
+
+      val mdgConnector        = mock[MdgConnector]
+      val notificationService = mock[CallbackSender]
+      val configuration       = mock[ServiceConfiguration]
+
+      when(configuration.maxRetryCount).thenReturn(4)
+      val transmissionService = new TransmissionRequestProcessingJob(mdgConnector, notificationService, configuration)
+
+      Given("MDG is faulty")
+      when(mdgConnector.requestTransmission(any())(any()))
+        .thenReturn(Future.successful(MdgRequestFatalError(new Exception("Planned exception"))))
+
+      And("consuming service is working fine")
+      when(notificationService.sendFailedCallback(any(), any())(any())).thenReturn(Future.successful(()))
+
+      When("request made to transmission service")
+      val result =
+        Await.result(transmissionService.process(TransmissionRequestEnvelope(request, "callingService"), 0), 10 seconds)
+
+      Then("response saying that processing failed should be returned")
+      result shouldBe a[ProcessingFailedDoNotRetry]
+
+      And("call to MDG has been made")
+      eventually {
+        verify(mdgConnector).requestTransmission(meq(request))(any())
+      }
+
+      And("consuming service is notified about failure")
+      eventually {
+        val exceptionCaptor: ArgumentCaptor[Throwable] = ArgumentCaptor.forClass(classOf[Throwable])
+        verify(notificationService)
+          .sendFailedCallback(meq(request), exceptionCaptor.capture())(any())
+        exceptionCaptor.getValue.getMessage shouldBe "Planned exception"
+
+      }
+      Mockito.verifyNoMoreInteractions(notificationService)
+
+    }
+
     "if call to MDG has failed but cannot be retried, send failure callback and report a persistent error" in {
 
       val mdgConnector        = mock[MdgConnector]
@@ -129,7 +169,7 @@ class TransmissionRequestProcessingJobSpec
 
       Given("MDG is faulty")
       when(mdgConnector.requestTransmission(any())(any()))
-        .thenReturn(Future.failed(new Exception("Planned exception")))
+        .thenReturn(Future.successful(MdgRequestError(new Exception("Planned exception"))))
 
       And("consuming service is working fine")
       when(notificationService.sendFailedCallback(any(), any())(any())).thenReturn(Future.successful(()))

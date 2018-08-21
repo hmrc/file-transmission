@@ -20,7 +20,7 @@ import cats.implicits._
 import javax.inject.Inject
 import play.api.Logger
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.connector.MdgConnector
+import uk.gov.hmrc.filetransmission.connector.{MdgRequestSuccessful, _}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.filetransmission.services.queue._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -38,29 +38,31 @@ class TransmissionRequestProcessingJob @Inject()(
   override def process(item: TransmissionRequestEnvelope, triedSoFar: Int): Future[ProcessingResult] = {
     implicit val hc = HeaderCarrier()
 
-    val requestingResult = mdgConnector.requestTransmission(item.request).attempt
-
-    for (result <- requestingResult) yield {
+    for (result <- mdgConnector.requestTransmission(item.request)) yield {
       logResult(item, result)
       result match {
-        case Right(_) =>
+        case MdgRequestSuccessful =>
           sendSuccessfulCallback(item)
           ProcessingSuccessful
-        case Left(error) if triedSoFar < maxRetries =>
+        case MdgRequestFatalError(error) =>
+          sendFailureCallback(item, error)
+          ProcessingFailedDoNotRetry(error)
+        case MdgRequestError(error) if triedSoFar < maxRetries =>
           ProcessingFailed(error)
-        case Left(error) =>
+        case MdgRequestError(error) =>
           sendFailureCallback(item, error)
           ProcessingFailedDoNotRetry(error)
       }
-
     }
 
   }
 
-  private def logResult(request: TransmissionRequestEnvelope, result: Either[Throwable, Unit]): Unit =
+  private def logResult(request: TransmissionRequestEnvelope, result: MdgRequestResult): Unit =
     result match {
-      case Right(_)    => Logger.info(s"Request ${request.describe} processed successfully")
-      case Left(error) => Logger.warn(s"Processing request ${request.describe} failed", error)
+      case MdgRequestSuccessful => Logger.info(s"Request ${request.describe} processed successfully")
+      case MdgRequestFatalError(error) =>
+        Logger.warn(s"Processing request ${request.describe} failed - non recoverable error", error)
+      case MdgRequestError(error) => Logger.warn(s"Processing request ${request.describe} failed", error)
     }
 
   private def sendSuccessfulCallback(request: TransmissionRequestEnvelope)(implicit hc: HeaderCarrier): Unit = {
