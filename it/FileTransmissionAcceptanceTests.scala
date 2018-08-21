@@ -56,10 +56,8 @@ class FileTransmissionAcceptanceTests
   "File Transmission Service" should {
 
     "pass valid request to MDG and confirm response to callback service" in {
-      val requestBody = Json.parse(validRequestBody)
-
-      Given("we have an invalid request")
-      val request = transmissionRequest(requestBody)
+      Given("we have valid request")
+      val request = transmissionRequest(Json.parse(validRequestBody))
 
       And("MDG is up and running")
       stubMdgToReturnValidResponse()
@@ -74,33 +72,42 @@ class FileTransmissionAcceptanceTests
       status(response) shouldBe 204
 
       And("MDG should receive the request")
-      eventually(Timeout(scaled(Span(2, Seconds))),
-                 Interval(scaled(Span(200, Millis)))) {
-        mdgServer.verify(postRequestedFor(urlEqualTo("/mdg")))
-      }
+      verifyMdgServerRetrievesRequest
 
       And(
         "consuming service should receive confirmation that the request has been processed successfuly")
-      eventually(Timeout(scaled(Span(2, Seconds))),
-                 Interval(scaled(Span(200, Millis)))) {
-        consumingServiceServer.verify(
-          postRequestedFor(urlEqualTo("/listen"))
-            .withRequestBody(equalToJson(s"""
-                                            | {
-                                            |   "fileReference" : "abcde12345",
-                                            |   "batchId" : "fghij67890",
-                                            |   "outcome" : "SUCCESS"
-                                            | }
-                                       """.stripMargin)))
-      }
+      verifyConsumingServiceRetrievesSuccessfulCallback
 
     }
 
-    "retry call to MDG if it failed for one time" in {
-      val requestBody = Json.parse(validRequestBody)
+    "not retry if MDG returned bad request" in {
+      Given("we have valid request")
+      val request = transmissionRequest(Json.parse(validRequestBody))
 
-      Given("we have an invalid request")
-      val request = transmissionRequest(requestBody)
+      And("MDG returns HTTP 400 bad requestsb")
+      stubMdgToReturnBadRequest()
+
+      And("consuming service is up and running")
+      stubConsumingServiceToReturnValidResponse()
+
+      When("the request is posted to the /request endpoint")
+      val response = route(app, request).get
+
+      Then("the response should that request has been consumed")
+      status(response) shouldBe 204
+
+      And(
+        "consuming service should receive notification that the request processing failed")
+      verifyConsumingServiceRetrievesFailureCallback(
+        "POST of 'http://localhost:11111/mdg' returned 400 (Bad Request). Response body ''")
+
+      And("MDG was called ocne and only once")
+      mdgServer.verify(1, postRequestedFor(urlEqualTo("/mdg")))
+    }
+
+    "retry call to MDG if it failed for one time" in {
+      Given("we have a valid request")
+      val request = transmissionRequest(Json.parse(validRequestBody))
 
       And("MDG is up and running")
       stubMdgToFailOnceAndSucceedAfterwards()
@@ -115,33 +122,16 @@ class FileTransmissionAcceptanceTests
       status(response) shouldBe 204
 
       And("MDG should receive the request")
-      eventually(Timeout(scaled(Span(2, Seconds))),
-                 Interval(scaled(Span(200, Millis)))) {
-        mdgServer.verify(postRequestedFor(urlEqualTo("/mdg")))
-      }
+      verifyMdgServerRetrievesRequest
 
       And(
-        "consuming service should receive confirmation that the request has been processed successfuly")
-      eventually(Timeout(scaled(Span(2, Seconds))),
-                 Interval(scaled(Span(200, Millis)))) {
-
-        consumingServiceServer.verify(
-          postRequestedFor(urlEqualTo("/listen"))
-            .withRequestBody(equalToJson(s"""
-                                            | {
-                                            |   "fileReference" : "abcde12345",
-                                            |   "batchId" : "fghij67890",
-                                            |   "outcome" : "SUCCESS"
-                                            | }
-                                       """.stripMargin)))
-      }
+        "consuming service should receive confirmation that the request has been processed successfully")
+      verifyConsumingServiceRetrievesSuccessfulCallback
     }
 
     "if MDG fails repeatedly, consuming service retrieves callback with failure" in {
-      val requestBody = Json.parse(validRequestBody)
-
-      Given("we have an invalid request")
-      val request = transmissionRequest(requestBody)
+      Given("we have a valid request")
+      val request = transmissionRequest(Json.parse(validRequestBody))
 
       And("MDG is failing repeatedly")
       stubMdgToFail()
@@ -156,27 +146,12 @@ class FileTransmissionAcceptanceTests
       status(response) shouldBe 204
 
       And("MDG should receive the request")
-      eventually(Timeout(scaled(Span(2, Seconds))),
-                 Interval(scaled(Span(200, Millis)))) {
-        mdgServer.verify(postRequestedFor(urlEqualTo("/mdg")))
-      }
+      verifyMdgServerRetrievesRequest
 
       And(
-        "consuming service should receive confirmation that the request has been processed successfuly")
-      eventually(Timeout(scaled(Span(4, Seconds))),
-                 Interval(scaled(Span(200, Millis)))) {
-
-        consumingServiceServer.verify(
-          postRequestedFor(urlEqualTo("/listen"))
-            .withRequestBody(equalToJson(s"""
-                                            | {
-                                            |   "fileReference" : "abcde12345",
-                                            |   "batchId" : "fghij67890",
-                                            |   "outcome":"FAILURE",
-                                            |   "errorDetails": "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''"
-                                            | }
-                                       """.stripMargin)))
-      }
+        "consuming service should receive confirmation that the request processing has failed")
+      verifyConsumingServiceRetrievesFailureCallback(
+        "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''")
     }
 
     "reject invalid request" in {
@@ -194,21 +169,50 @@ class FileTransmissionAcceptanceTests
 
   }
 
+  private def verifyMdgServerRetrievesRequest =
+    eventually(Timeout(scaled(Span(2, Seconds))),
+               Interval(scaled(Span(200, Millis)))) {
+      mdgServer.verify(postRequestedFor(urlEqualTo("/mdg")))
+    }
+
+  private def verifyConsumingServiceRetrievesSuccessfulCallback =
+    eventually(Timeout(scaled(Span(2, Seconds))),
+               Interval(scaled(Span(200, Millis)))) {
+      consumingServiceServer.verify(
+        postRequestedFor(urlEqualTo("/listen"))
+          .withRequestBody(equalToJson(s"""
+               | {
+               |   "fileReference" : "abcde12345",
+               |   "batchId" : "fghij67890",
+               |   "outcome" : "SUCCESS"
+               | }""".stripMargin)))
+    }
+
+  private def verifyConsumingServiceRetrievesFailureCallback(message: String) =
+    eventually(Timeout(scaled(Span(2, Seconds))),
+               Interval(scaled(Span(200, Millis)))) {
+      consumingServiceServer.verify(
+        postRequestedFor(urlEqualTo("/listen"))
+          .withRequestBody(equalToJson(s"""
+                                          | {
+                                          |   "fileReference" : "abcde12345",
+                                          |   "batchId" : "fghij67890",
+                                          |   "outcome" : "FAILURE",
+                                          |    "errorDetails": "$message"
+                                          | }""".stripMargin)))
+    }
+
   private def stubMdgToReturnValidResponse(): Unit =
     mdgServer.stubFor(
-      post(urlEqualTo("/mdg"))
-        .willReturn(
-          aResponse()
-            .withStatus(204)
-        ))
+      post(urlEqualTo("/mdg")).willReturn(aResponse().withStatus(204)))
 
   private def stubMdgToFail(): Unit =
     mdgServer.stubFor(
-      post(urlEqualTo("/mdg"))
-        .willReturn(
-          aResponse()
-            .withStatus(503)
-        ))
+      post(urlEqualTo("/mdg")).willReturn(aResponse().withStatus(503)))
+
+  private def stubMdgToReturnBadRequest() =
+    mdgServer.stubFor(
+      post(urlEqualTo("/mdg")).willReturn(aResponse().withStatus(400)))
 
   private def stubMdgToFailOnceAndSucceedAfterwards() = {
     mdgServer.stubFor(
@@ -233,19 +237,11 @@ class FileTransmissionAcceptanceTests
 
   private def stubConsumingServiceToReturnValidResponse(): Unit =
     consumingServiceServer.stubFor(
-      post(urlEqualTo("/listen"))
-        .willReturn(
-          aResponse()
-            .withStatus(200)
-        ))
+      post(urlEqualTo("/listen")).willReturn(aResponse().withStatus(200)))
 
   private def stubConsumingServiceToReturnInvalidResponse(): Unit =
     consumingServiceServer.stubFor(
-      post(urlEqualTo("/listen"))
-        .willReturn(
-          aResponse()
-            .withStatus(503)
-        ))
+      post(urlEqualTo("/listen")).willReturn(aResponse().withStatus(503)))
 
   private def transmissionRequest(body: JsValue,
                                   userAgent: String =
