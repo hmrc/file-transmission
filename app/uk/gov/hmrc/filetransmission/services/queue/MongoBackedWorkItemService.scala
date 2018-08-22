@@ -105,7 +105,7 @@ class MongoBackedWorkItemService @Inject()(
       workItem: WorkItem[TransmissionRequestEnvelope]): DateTime = {
 
     val deliveryWindowDuration =
-      workItem.item.request.requestTimeoutInSeconds
+      workItem.item.request.deliveryWindowDuration
         .getOrElse(configuration.defaultDeliveryWindowDuration)
 
     workItem.receivedAt + deliveryWindowDuration

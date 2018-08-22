@@ -286,7 +286,8 @@ class FileTransmissionAcceptanceTests
 
   private def requestTimeoutField(requestTimeout: Option[Duration]) =
     requestTimeout
-      .map(value => s""" "requestTimeoutInSeconds": ${value.toSeconds},""")
+      .map(value =>
+        s""" "deliveryWindowDurationInSeconds": ${value.toSeconds},""")
       .getOrElse("")
 
   private def validRequestBody(requestTimeout: Option[Duration] = None) =

@@ -29,7 +29,7 @@ case class TransmissionRequest(batch: Batch,
                                file: File,
                                properties: Seq[Property],
                                callbackUrl: URL,
-                               requestTimeoutInSeconds: Option[FiniteDuration])
+                               deliveryWindowDuration: Option[FiniteDuration])
 
 case class TransmissionRequestEnvelope(
     request: TransmissionRequest,
@@ -79,7 +79,8 @@ object TransmissionRequest {
       (JsPath \ "file").format[File] and
       (JsPath \ "properties").format[Seq[Property]] and
       (JsPath \ "callbackUrl").format[URL] and
-      (JsPath \ "requestTimeoutInSeconds").formatNullable(timeInSecondsFormat)
+      (JsPath \ "deliveryWindowDurationInSeconds").formatNullable(
+        timeInSecondsFormat)
   )(TransmissionRequest.apply, unlift(TransmissionRequest.unapply))
 
 }
