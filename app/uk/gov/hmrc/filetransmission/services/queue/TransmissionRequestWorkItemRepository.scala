@@ -27,32 +27,35 @@ import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
-import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters
+import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.workitem.{WorkItem, _}
 
 class TransmissionRequestWorkItemRepository @Inject()(
-  mongoComponent: ReactiveMongoComponent,
-  configuration: ServiceConfiguration,
-  clock: Clock)
+    mongoComponent: ReactiveMongoComponent,
+    configuration: ServiceConfiguration,
+    clock: Clock)
     extends WorkItemRepository[TransmissionRequestEnvelope, BSONObjectID](
       collectionName = "transmission-request",
-      mongo          = mongoComponent.mongoConnector.db,
-      itemFormat     = WorkItemFormat.workItemMongoFormat[TransmissionRequestEnvelope]
+      mongo = mongoComponent.mongoConnector.db,
+      itemFormat =
+        WorkItemFormat.workItemMongoFormat[TransmissionRequestEnvelope]
     ) {
 
-  override def now: DateTime = JodaTimeConverters.toYoda(clock.instant(), clock.getZone)
+  override def now: DateTime = clock.nowAsJoda
 
-  override def inProgressRetryAfterProperty: String = ??? // we don't use this, we override inProgressRetryAfter instead
+  override def inProgressRetryAfterProperty: String =
+    ??? // we don't use this, we override inProgressRetryAfter instead
 
-  override lazy val inProgressRetryAfter: Duration = Duration.millis(configuration.inFlightLockDuration.toMillis)
+  override lazy val inProgressRetryAfter: Duration =
+    Duration.millis(configuration.inFlightLockDuration.toMillis)
 
   override def workItemFields = new WorkItemFieldNames {
-    val receivedAt   = "modifiedDetails.createdAt"
-    val updatedAt    = "modifiedDetails.lastUpdated"
-    val availableAt  = "modifiedDetails.availableAt"
-    val status       = "status"
-    val id           = "_id"
+    val receivedAt = "modifiedDetails.createdAt"
+    val updatedAt = "modifiedDetails.lastUpdated"
+    val availableAt = "modifiedDetails.availableAt"
+    val status = "status"
+    val id = "_id"
     val failureCount = "failures"
   }
 }
@@ -61,12 +64,13 @@ object WorkItemFormat {
 
   def workItemMongoFormat[T](implicit tFormat: Format[T]): Format[WorkItem[T]] =
     ReactiveMongoFormats.mongoEntity(
-      ticketFormat(ReactiveMongoFormats.objectIdFormats, ReactiveMongoFormats.dateTimeFormats, tFormat))
+      ticketFormat(ReactiveMongoFormats.objectIdFormats,
+                   ReactiveMongoFormats.dateTimeFormats,
+                   tFormat))
 
-  private def ticketFormat[T](
-    implicit bsonIdFormat: Format[BSONObjectID],
-    dateTimeFormat: Format[DateTime],
-    tFormat: Format[T]): Format[WorkItem[T]] = {
+  private def ticketFormat[T](implicit bsonIdFormat: Format[BSONObjectID],
+                              dateTimeFormat: Format[DateTime],
+                              tFormat: Format[T]): Format[WorkItem[T]] = {
     val reads = (
       (__ \ "id").read[BSONObjectID] and
         (__ \ "modifiedDetails" \ "createdAt").read[DateTime] and

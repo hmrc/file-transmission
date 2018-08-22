@@ -36,22 +36,33 @@ class RequestValidatorSpec
   val httpRequest: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
-    File("ref", new URL("http://127.0.0.1/test"), "test.xml", "application/xml", "checksum", 1, 1024),
+    File("ref",
+         new URL("http://127.0.0.1/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     httpCallback,
-    30
+    None
   )
 
   val httpsRequest: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
-    File("ref", new URL("http://127.0.0.1/test"), "test.xml", "application/xml", "checksum", 1, 1024),
+    File("ref",
+         new URL("http://127.0.0.1/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("https://127.0.0.1/test"),
-    30
+    None
   )
 
-  
   "RequestValidator.validate" should {
 
     "accept request if URL with protocol in allowed list" in {
@@ -81,7 +92,8 @@ class RequestValidatorSpec
 
       Then("the validator should reject as bad request")
       withClue(result) {
-        result shouldBe Left(s"Invalid callback url protocol: [$httpCallback]. Protocol must be in: [https].")
+        result shouldBe Left(
+          s"Invalid callback url protocol: [$httpCallback]. Protocol must be in: [https].")
       }
     }
   }

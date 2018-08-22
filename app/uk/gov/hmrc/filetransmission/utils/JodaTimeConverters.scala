@@ -15,22 +15,41 @@
  */
 
 package uk.gov.hmrc.filetransmission.utils
-import java.time.{Instant, ZoneId}
+import java.time.Clock
 import java.util.TimeZone
 
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{DateTime, DateTimeZone, Duration}
 
 object JodaTimeConverters {
 
-  def toYoda(dateTime: java.time.ZonedDateTime) =
+  implicit def toYoda(dateTime: java.time.ZonedDateTime) =
     new DateTime(
       dateTime.toInstant.toEpochMilli,
       DateTimeZone.forTimeZone(TimeZone.getTimeZone(dateTime.getZone)))
 
-  def toYoda(instant: Instant, zone: ZoneId) =
-    new DateTime(instant.toEpochMilli,
-                 DateTimeZone.forTimeZone(TimeZone.getTimeZone(zone)))
+  implicit def fromYoda(dateTime: DateTime) = dateTime.toDate.toInstant
 
-  def fromYoda(dateTime: DateTime) = dateTime.toDate.toInstant
+  implicit def toYoda(input: scala.concurrent.duration.Duration): Duration = {
+    Duration.millis(input.toMillis)
+  }
+
+  implicit class ClockJodaExtensions(clock: Clock) {
+    def nowAsJoda = {
+      new DateTime(
+        clock.instant().toEpochMilli,
+        DateTimeZone.forTimeZone(TimeZone.getTimeZone(clock.getZone)))
+    }
+  }
+
+  implicit class JodaDateTimeExtensions(dateTime: DateTime) {
+    def +(duration: Duration) = dateTime.plus(duration)
+
+    def <(other: DateTime) = dateTime.isBefore(other)
+
+  }
+
+  implicit class JodaDurationExtension(duration: Duration) {
+    def *(multiplier: Long) = duration.multipliedBy(multiplier)
+  }
 
 }

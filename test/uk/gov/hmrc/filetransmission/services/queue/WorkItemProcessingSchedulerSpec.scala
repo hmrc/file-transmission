@@ -53,7 +53,8 @@ class WorkItemProcessingSchedulerSpec
       shouldFail = true
     }
 
-    override def enqueue(request: TransmissionRequestEnvelope): Future[Unit] = ???
+    override def enqueue(request: TransmissionRequestEnvelope): Future[Unit] =
+      ???
     override def processOne(): Future[Boolean] =
       synchronized {
         if (shouldFail) {
@@ -80,14 +81,14 @@ class WorkItemProcessingSchedulerSpec
   "scheduler" should {
 
     val configuration = new ServiceConfiguration {
-      override def mdgEndpoint: String                      = ???
-      override def allowedUserAgents: Seq[String]           = ???
-      override def queuePollingInterval: Duration           = 1 second
+      override def mdgEndpoint: String = ???
+      override def allowedUserAgents: Seq[String] = ???
+      override def queuePollingInterval: Duration = 1 second
       override def queueRetryAfterFailureInterval: Duration = 2 seconds
-      override def inFlightLockDuration: Duration           = ???
-      override def initialBackoffAfterFailure: Duration     = ???
-      override def maxRetryCount: Int                       = ???
-      override def allowedCallbackProtocols: Seq[String]    = ???
+      override def inFlightLockDuration: Duration = ???
+      override def initialBackoffAfterFailure: Duration = ???
+      override def allowedCallbackProtocols: Seq[String] = ???
+      override def defaultDeliveryWindowDuration: Duration = ???
     }
 
     "process all requests waiting in the queue" in {
@@ -96,9 +97,11 @@ class WorkItemProcessingSchedulerSpec
 
       workItemService.addRemainingItems(3)
 
-      val workItemProcessingScheduler = new WorkItemProcessingScheduler(workItemService, configuration)
+      val workItemProcessingScheduler =
+        new WorkItemProcessingScheduler(workItemService, configuration)
 
-      eventually(Timeout(scaled(Span(2, Seconds))), Interval(scaled(Span(200, Millis)))) {
+      eventually(Timeout(scaled(Span(2, Seconds))),
+                 Interval(scaled(Span(200, Millis)))) {
         workItemService.processedItems == 3
       }
 
@@ -112,9 +115,11 @@ class WorkItemProcessingSchedulerSpec
 
       workItemService.addRemainingItems(3)
 
-      val workItemProcessingScheduler = new WorkItemProcessingScheduler(workItemService, configuration)
+      val workItemProcessingScheduler =
+        new WorkItemProcessingScheduler(workItemService, configuration)
 
-      eventually(Timeout(scaled(Span(2, Seconds))), Interval(scaled(Span(200, Millis)))) {
+      eventually(Timeout(scaled(Span(2, Seconds))),
+                 Interval(scaled(Span(200, Millis)))) {
         workItemService.processedItems shouldBe 3
       }
 
@@ -122,7 +127,8 @@ class WorkItemProcessingSchedulerSpec
 
       workItemService.addRemainingItems(3)
 
-      eventually(Timeout(scaled(Span(2, Seconds))), Interval(scaled(Span(200, Millis)))) {
+      eventually(Timeout(scaled(Span(2, Seconds))),
+                 Interval(scaled(Span(200, Millis)))) {
         workItemService.processedItems shouldBe 6
       }
 
@@ -135,9 +141,11 @@ class WorkItemProcessingSchedulerSpec
 
       workItemService.addRemainingItems(3)
 
-      val workItemProcessingScheduler = new WorkItemProcessingScheduler(workItemService, configuration)
+      val workItemProcessingScheduler =
+        new WorkItemProcessingScheduler(workItemService, configuration)
 
-      eventually(Timeout(scaled(Span(2, Seconds))), Interval(scaled(Span(200, Millis)))) {
+      eventually(Timeout(scaled(Span(2, Seconds))),
+                 Interval(scaled(Span(200, Millis)))) {
         workItemService.processedItems shouldBe 3
       }
 
@@ -145,7 +153,8 @@ class WorkItemProcessingSchedulerSpec
 
       workItemService.addRemainingItems(3)
 
-      eventually(Timeout(scaled(Span(5, Seconds))), Interval(scaled(Span(200, Millis)))) {
+      eventually(Timeout(scaled(Span(5, Seconds))),
+                 Interval(scaled(Span(200, Millis)))) {
         workItemService.processedItems shouldBe 6
       }
 

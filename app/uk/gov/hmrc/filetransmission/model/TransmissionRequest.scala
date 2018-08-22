@@ -18,20 +18,22 @@ package uk.gov.hmrc.filetransmission.model
 
 import java.net.URL
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.{Format, JsPath, Json}
 import uk.gov.hmrc.filetransmission.utils.HttpUrlFormat
 
-case class TransmissionRequest(
-  batch: Batch,
-  interface: Interface,
-  file: File,
-  properties: Seq[Property],
-  callbackUrl: URL,
-  requestTimeoutInSeconds: Int)
+import scala.concurrent.duration._
+
+case class TransmissionRequest(batch: Batch,
+                               interface: Interface,
+                               file: File,
+                               properties: Seq[Property],
+                               callbackUrl: URL,
+                               deliveryWindowDuration: Option[FiniteDuration])
 
 case class TransmissionRequestEnvelope(
-  request: TransmissionRequest,
-  serviceName: String
+    request: TransmissionRequest,
+    serviceName: String
 ) {
   def describe =
     s"consumingService: [$serviceName] fileReference: [${request.file.reference}] batchId: [${request.batch.id}]"
@@ -43,18 +45,18 @@ case class Batch(id: String, fileCount: Int)
 case class Interface(name: String, version: String)
 
 case class File(
-  reference: String,
-  location: URL,
-  name: String,
-  mimeType: String,
-  checksum: String,
-  sequenceNumber: Int,
-  size: Int
+    reference: String,
+    location: URL,
+    name: String,
+    mimeType: String,
+    checksum: String,
+    sequenceNumber: Int,
+    size: Int
 )
 
 case class Property(
-  name: String,
-  value: String
+    name: String,
+    value: String
 )
 
 object TransmissionRequest {
@@ -68,11 +70,23 @@ object TransmissionRequest {
 
   implicit val batchReads: Format[Batch] = Json.format[Batch]
 
-  implicit val transmissionRequestReads: Format[TransmissionRequest] = Json.format[TransmissionRequest]
+  val timeInSecondsFormat: Format[FiniteDuration] =
+    implicitly[Format[Int]].inmap(_ seconds, _.toSeconds.toInt)
+
+  implicit val transmissionRequestReads: Format[TransmissionRequest] = (
+    (JsPath \ "batch").format[Batch] and
+      (JsPath \ "interface").format[Interface] and
+      (JsPath \ "file").format[File] and
+      (JsPath \ "properties").format[Seq[Property]] and
+      (JsPath \ "callbackUrl").format[URL] and
+      (JsPath \ "deliveryWindowDurationInSeconds").formatNullable(
+        timeInSecondsFormat)
+  )(TransmissionRequest.apply, unlift(TransmissionRequest.unapply))
 
 }
 
 object TransmissionRequestEnvelope {
-  implicit val transmissionRequestEnvelopeFormat: Format[TransmissionRequestEnvelope] =
+  implicit val transmissionRequestEnvelopeFormat
+    : Format[TransmissionRequestEnvelope] =
     Json.format[TransmissionRequestEnvelope]
 }
