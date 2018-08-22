@@ -65,7 +65,7 @@ The request should provide data about the batch, each file in the batch, and a c
 
 The body of a request for transmission of a file in a batch would typically comprise the below:
 - `callbackUrl` - URL provided by the consuming service, that is used by `file-transmission` to notify whether the request was accepted by MDG. Please be aware that this should be an HTTPS endpoint.
-- `requestTimeoutInSeconds` - duration that `file-transmission` will try to deliver file details to MDG before giving up
+- `requestTimeoutInSeconds` - duration during which `file-transmission` will try to deliver file details to MDG before giving up (this field is optional)
 - Batch information
   - `batchId` - unique batch identifier
   - `fileCount` - number of files in the batch
@@ -134,6 +134,7 @@ Here is an example of a request body for `file-transmission`:
 }
 ```
 
+
 [[Back to the top]](#top)
 
 ### Request outcome <a name="service__outcome"></a>
@@ -162,6 +163,20 @@ In case passing the request to MDG failed, the consuming service retrieves callb
       "errorDetails": "text field from MDG"
    }
 ```
+
+[[Back to the top]](#top)
+
+### Retrying
+
+If file-transmission fails to deliver the message to MDG it will make several attempts to redeliver it after delay.
+If it fails to deliver it within certain delivery window, failure notification callback will be sent to consuming service.
+
+Default length of delivery window is set in the service configuration (`initialBackoffAfterFailure` parameter).
+It can be customized per request by setting `requestTimeoutInSeconds` parameter within the request body.
+
+The service uses exponential backoff when performing retry attempts. Initial retry delay is defined by 
+`initialBackoffAfterFailure` property set in the service configuration. After every failed attempt, this delay
+is doubled.
 
 [[Back to the top]](#top)
 

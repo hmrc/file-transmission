@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.filetransmission.utils
 import java.net.URL
+import scala.concurrent.duration._
 
 import uk.gov.hmrc.filetransmission.model._
 
@@ -24,10 +25,16 @@ object SampleTransmissionRequest {
   def get: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
-    File("ref", new URL("http://127.0.0.1/test"), "test.xml", "application/xml", "checksum", 1, 1024),
+    File("ref",
+         new URL("http://127.0.0.1/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("http://127.0.0.1/test"),
-    30
+    Some(30 seconds)
   )
 
 }

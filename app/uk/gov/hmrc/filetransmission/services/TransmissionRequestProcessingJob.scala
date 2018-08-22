@@ -28,14 +28,13 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.{ExecutionContext, Future}
 
 class TransmissionRequestProcessingJob @Inject()(
-  mdgConnector: MdgConnector,
-  callbackSender: CallbackSender,
-  configuration: ServiceConfiguration)(implicit ec: ExecutionContext)
+    mdgConnector: MdgConnector,
+    callbackSender: CallbackSender,
+    configuration: ServiceConfiguration)(implicit ec: ExecutionContext)
     extends QueueJob {
 
-  private lazy val maxRetries: Int = configuration.maxRetryCount
-
-  override def process(item: TransmissionRequestEnvelope, triedSoFar: Int): Future[ProcessingResult] = {
+  override def process(item: TransmissionRequestEnvelope,
+                       canRetry: Boolean): Future[ProcessingResult] = {
     implicit val hc = HeaderCarrier()
 
     for (result <- mdgConnector.requestTransmission(item.request)) yield {
@@ -47,7 +46,7 @@ class TransmissionRequestProcessingJob @Inject()(
         case MdgRequestFatalError(error) =>
           sendFailureCallback(item, error)
           ProcessingFailedDoNotRetry(error)
-        case MdgRequestError(error) if triedSoFar < maxRetries =>
+        case MdgRequestError(error) if canRetry =>
           ProcessingFailed(error)
         case MdgRequestError(error) =>
           sendFailureCallback(item, error)
@@ -57,30 +56,41 @@ class TransmissionRequestProcessingJob @Inject()(
 
   }
 
-  private def logResult(request: TransmissionRequestEnvelope, result: MdgRequestResult): Unit =
+  private def logResult(request: TransmissionRequestEnvelope,
+                        result: MdgRequestResult): Unit =
     result match {
-      case MdgRequestSuccessful => Logger.info(s"Request ${request.describe} processed successfully")
+      case MdgRequestSuccessful =>
+        Logger.info(s"Request ${request.describe} processed successfully")
       case MdgRequestFatalError(error) =>
-        Logger.warn(s"Processing request ${request.describe} failed - non recoverable error", error)
-      case MdgRequestError(error) => Logger.warn(s"Processing request ${request.describe} failed", error)
+        Logger.warn(
+          s"Processing request ${request.describe} failed - non recoverable error",
+          error)
+      case MdgRequestError(error) =>
+        Logger.warn(s"Processing request ${request.describe} failed", error)
     }
 
-  private def sendSuccessfulCallback(request: TransmissionRequestEnvelope)(implicit hc: HeaderCarrier): Unit = {
-    val callbackSendingResult = callbackSender.sendSuccessfulCallback(request.request)
+  private def sendSuccessfulCallback(request: TransmissionRequestEnvelope)(
+      implicit hc: HeaderCarrier): Unit = {
+    val callbackSendingResult =
+      callbackSender.sendSuccessfulCallback(request.request)
     callbackSendingResult.onFailure {
       case t: Throwable =>
-        Logger.warn(s"Failed to send callback for request ${request.describe}", t)
+        Logger.warn(s"Failed to send callback for request ${request.describe}",
+                    t)
     }
 
   }
 
-  private def sendFailureCallback(request: TransmissionRequestEnvelope, error: Throwable)(
-    implicit hc: HeaderCarrier): Unit = {
+  private def sendFailureCallback(
+      request: TransmissionRequestEnvelope,
+      error: Throwable)(implicit hc: HeaderCarrier): Unit = {
 
-    val callbackSendingResult = callbackSender.sendFailedCallback(request.request, error)
+    val callbackSendingResult =
+      callbackSender.sendFailedCallback(request.request, error)
     callbackSendingResult.onFailure {
       case t: Throwable =>
-        Logger.warn(s"Failed to send callback for request ${request.describe}", t)
+        Logger.warn(s"Failed to send callback for request ${request.describe}",
+                    t)
     }
 
   }

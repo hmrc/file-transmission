@@ -23,6 +23,7 @@ import org.xml.sax.SAXParseException
 import org.xmlunit.diff.ComparisonFormatter
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.play.test.UnitSpec
+import scala.concurrent.duration._
 
 import scala.util.Try
 
@@ -37,10 +38,16 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
       val request = TransmissionRequest(
         Batch("A", 10),
         Interface("J", "1.0"),
-        File("ref", new URL("http://127.0.0.1/test"), "test.xml", "application/xml", "checksum", 1, 1024),
+        File("ref",
+             new URL("http://127.0.0.1/test"),
+             "test.xml",
+             "application/xml",
+             "checksum",
+             1,
+             1024),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
-        30
+        Some(30 seconds)
       )
 
       val serializedRequest: String = serializer.serialize(request)
@@ -56,10 +63,16 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
       val request = TransmissionRequest(
         Batch("A", 10),
         Interface("interface1", "1.0"),
-        File("ref", new URL("http://127.0.0.1/test"), "test.xml", "application/xml", "checksum", 1, 1024),
+        File("ref",
+             new URL("http://127.0.0.1/test"),
+             "test.xml",
+             "application/xml",
+             "checksum",
+             1,
+             1024),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
-        30
+        Some(30 seconds)
       )
 
       val serializedRequest: String = serializer.serialize(request)
@@ -124,8 +137,11 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
     val schemaLang = javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
     val xsdStream =
       new javax.xml.transform.stream.StreamSource(
-        this.getClass.getResourceAsStream("/BatchFileInterfaceMetadata-1.0.6.xsd"))
-    val schema = javax.xml.validation.SchemaFactory.newInstance(schemaLang).newSchema(xsdStream)
+        this.getClass
+          .getResourceAsStream("/BatchFileInterfaceMetadata-1.0.6.xsd"))
+    val schema = javax.xml.validation.SchemaFactory
+      .newInstance(schemaLang)
+      .newSchema(xsdStream)
 
     val factory = javax.xml.parsers.SAXParserFactory.newInstance()
     factory.setNamespaceAware(true)

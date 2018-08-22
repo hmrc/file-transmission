@@ -21,10 +21,11 @@ import java.time.Clock
 import cats.data.OptionT
 import cats.implicits._
 import javax.inject.Inject
-import org.joda.time.{DateTime, DateTimeZone, Duration}
+import org.joda.time.DateTime
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters
+import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
 import uk.gov.hmrc.workitem._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,7 +36,8 @@ case class ProcessingFailed(error: Throwable) extends ProcessingResult
 case class ProcessingFailedDoNotRetry(error: Throwable) extends ProcessingResult
 
 trait QueueJob {
-  def process(item: TransmissionRequestEnvelope, triedSoFar: Int): Future[ProcessingResult]
+  def process(item: TransmissionRequestEnvelope,
+              canRetry: Boolean): Future[ProcessingResult]
 }
 
 trait WorkItemService {
@@ -45,10 +47,10 @@ trait WorkItemService {
 }
 
 class MongoBackedWorkItemService @Inject()(
-  repository: TransmissionRequestWorkItemRepository,
-  queueJob: QueueJob,
-  configuration: ServiceConfiguration,
-  clock: Clock)(implicit ec: ExecutionContext)
+    repository: TransmissionRequestWorkItemRepository,
+    queueJob: QueueJob,
+    configuration: ServiceConfiguration,
+    clock: Clock)(implicit ec: ExecutionContext)
     extends WorkItemService {
 
   def enqueue(request: TransmissionRequestEnvelope): Future[Unit] =
@@ -56,12 +58,13 @@ class MongoBackedWorkItemService @Inject()(
 
   def processOne(): Future[Boolean] = {
 
-    val failedBefore    = now() //we don't use this
+    val failedBefore = now() //we don't use this
     val availableBefore = now()
 
     val result: OptionT[Future, Unit] = for {
-      firstOutstandingItem <- OptionT(repository.pullOutstanding(failedBefore, availableBefore))
-      _                    <- OptionT.liftF(processWorkItem(firstOutstandingItem))
+      firstOutstandingItem <- OptionT(
+        repository.pullOutstanding(failedBefore, availableBefore))
+      _ <- OptionT.liftF(processWorkItem(firstOutstandingItem))
     } yield ()
 
     val somethingHasBeenProcessed = result.value.map(_.isDefined)
@@ -69,28 +72,43 @@ class MongoBackedWorkItemService @Inject()(
     somethingHasBeenProcessed
   }
 
-  private def processWorkItem(workItem: WorkItem[TransmissionRequestEnvelope]): Future[Unit] = {
+  private def processWorkItem(
+      workItem: WorkItem[TransmissionRequestEnvelope]): Future[Unit] = {
     val request = workItem.item
-    for (processingResult <- queueJob.process(request, workItem.failureCount)) yield {
+
+    val nextRetryTime: DateTime = nextAvailabilityTime(workItem)
+    val canRetry = nextRetryTime < timeToGiveUp(workItem)
+
+    for (processingResult <- queueJob.process(request, canRetry)) yield {
       processingResult match {
         case ProcessingSuccessful =>
           repository.complete(workItem.id, Succeeded)
-        case ProcessingFailed(error) =>
-          repository.markAs(workItem.id, Failed, Some(nextAvailabilityTime(workItem)))
-        case ProcessingFailedDoNotRetry(error) =>
+        case ProcessingFailed(_) =>
+          repository.markAs(workItem.id, Failed, Some(nextRetryTime))
+        case ProcessingFailedDoNotRetry(_) =>
           repository.markAs(workItem.id, PermanentlyFailed, None)
       }
     }
   }
 
-  private def now(): DateTime = JodaTimeConverters.toYoda(clock.instant(), clock.getZone)
+  private def now(): DateTime = clock.nowAsJoda
 
   private def nextAvailabilityTime[T](workItem: WorkItem[T]): DateTime = {
-    val delay = Duration
-      .millis(configuration.initialBackoffAfterFailure.toMillis)
-      .multipliedBy(Math.pow(2, workItem.failureCount).toInt)
 
-    now().plus(delay)
+    val multiplier = Math.pow(2, workItem.failureCount).toInt
+    val delay = configuration.initialBackoffAfterFailure * multiplier
+
+    now() + delay
+  }
+
+  private def timeToGiveUp(
+      workItem: WorkItem[TransmissionRequestEnvelope]): DateTime = {
+
+    val deliveryWindowDuration =
+      workItem.item.request.requestTimeoutInSeconds
+        .getOrElse(configuration.defaultDeliveryWindowDuration)
+
+    workItem.receivedAt + deliveryWindowDuration
   }
 
 }

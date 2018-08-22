@@ -19,7 +19,11 @@ package uk.gov.hmrc.filetransmission.connector
 import java.net.URL
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
+import com.github.tomakehurst.wiremock.client.WireMock.{
+  aResponse,
+  post,
+  urlEqualTo
+}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
@@ -34,7 +38,11 @@ import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-class HttpCallbackSenderSpec extends UnitSpec with GivenWhenThen with MockitoSugar with BeforeAndAfterAll {
+class HttpCallbackSenderSpec
+    extends UnitSpec
+    with GivenWhenThen
+    with MockitoSugar
+    with BeforeAndAfterAll {
 
   val httpClient = new TestHttpClient()
 
@@ -69,10 +77,16 @@ class HttpCallbackSenderSpec extends UnitSpec with GivenWhenThen with MockitoSug
   val request: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
-    File("ref", new URL("http://127.0.0.1:11111/test"), "test.xml", "application/xml", "checksum", 1, 1024),
+    File("ref",
+         new URL("http://127.0.0.1:11111/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     callbackUrl,
-    30
+    None
   )
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -85,7 +99,8 @@ class HttpCallbackSenderSpec extends UnitSpec with GivenWhenThen with MockitoSug
 
       stubCallbackReceiverToReturnValidResponse()
 
-      val result = Await.ready(callbackSender.sendSuccessfulCallback(request), 10 seconds)
+      val result =
+        Await.ready(callbackSender.sendSuccessfulCallback(request), 10 seconds)
 
       result.value.get.isSuccess shouldBe true
 
@@ -105,7 +120,8 @@ class HttpCallbackSenderSpec extends UnitSpec with GivenWhenThen with MockitoSug
 
       stubCallbackReceiverToReturnInvalidResponse()
 
-      val result = Await.ready(callbackSender.sendSuccessfulCallback(request), 10 seconds)
+      val result =
+        Await.ready(callbackSender.sendSuccessfulCallback(request), 10 seconds)
 
       result.value.get.isFailure shouldBe true
     }
@@ -115,7 +131,10 @@ class HttpCallbackSenderSpec extends UnitSpec with GivenWhenThen with MockitoSug
       stubCallbackReceiverToReturnValidResponse()
 
       val result =
-        Await.ready(callbackSender.sendFailedCallback(request, new Exception("Planned exception")), 10 seconds)
+        Await.ready(
+          callbackSender.sendFailedCallback(request,
+                                            new Exception("Planned exception")),
+          10 seconds)
 
       result.value.get.isSuccess shouldBe true
 
@@ -136,7 +155,10 @@ class HttpCallbackSenderSpec extends UnitSpec with GivenWhenThen with MockitoSug
       stubCallbackReceiverToReturnInvalidResponse()
 
       val result =
-        Await.ready(callbackSender.sendFailedCallback(request, new Exception("Planned exception")), 10 seconds)
+        Await.ready(
+          callbackSender.sendFailedCallback(request,
+                                            new Exception("Planned exception")),
+          10 seconds)
 
       result.value.get.isFailure shouldBe true
 

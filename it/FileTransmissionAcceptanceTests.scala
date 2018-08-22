@@ -14,6 +14,9 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.play.test.UnitSpec
+import scala.concurrent.duration._
+
+import scala.concurrent.duration.Duration
 
 class FileTransmissionAcceptanceTests
     extends UnitSpec
@@ -30,7 +33,7 @@ class FileTransmissionAcceptanceTests
       "mdgEndpoint" -> "http://localhost:11111/mdg",
       "callbackValidation.allowedProtocols" -> "http",
       "initialBackoffAfterFailure" -> "75 milliseconds",
-      "maxRetryCount" -> "2"
+      "deliveryWindowDuration" -> "15 seconds"
     )
     .build()
 
@@ -57,7 +60,7 @@ class FileTransmissionAcceptanceTests
 
     "pass valid request to MDG and confirm response to callback service" in {
       Given("we have valid request")
-      val request = transmissionRequest(Json.parse(validRequestBody))
+      val request = transmissionRequest(Json.parse(validRequestBody()))
 
       And("MDG is up and running")
       stubMdgToReturnValidResponse()
@@ -82,7 +85,7 @@ class FileTransmissionAcceptanceTests
 
     "not retry if MDG returned bad request" in {
       Given("we have valid request")
-      val request = transmissionRequest(Json.parse(validRequestBody))
+      val request = transmissionRequest(Json.parse(validRequestBody()))
 
       And("MDG returns HTTP 400 bad requestsb")
       stubMdgToReturnBadRequest()
@@ -107,7 +110,7 @@ class FileTransmissionAcceptanceTests
 
     "retry call to MDG if it failed for one time" in {
       Given("we have a valid request")
-      val request = transmissionRequest(Json.parse(validRequestBody))
+      val request = transmissionRequest(Json.parse(validRequestBody()))
 
       And("MDG is up and running")
       stubMdgToFailOnceAndSucceedAfterwards()
@@ -129,9 +132,37 @@ class FileTransmissionAcceptanceTests
       verifyConsumingServiceRetrievesSuccessfulCallback
     }
 
+    "when retrying, custom retry window duration should be honored" in {
+      Given("we have a valid request")
+
+      val request = transmissionRequest(
+        Json.parse(validRequestBody(requestTimeout = Some(8 seconds))))
+
+      And("MDG is failing repeatedly")
+      stubMdgToFail()
+
+      And("consuming service is up and running")
+      stubConsumingServiceToReturnValidResponse()
+
+      When("the request is posted to the /request endpoint")
+      val response = route(app, request).get
+
+      Then("the response should that request has been consumed")
+      status(response) shouldBe 204
+
+      And("MDG should receive the request")
+      verifyMdgServerRetrievesRequest
+
+      And(
+        "consuming service should receive confirmation that the request processing has failed")
+      verifyConsumingServiceRetrievesFailureCallback(
+        "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''",
+        timeout = 8 seconds)
+    }
+
     "if MDG fails repeatedly, consuming service retrieves callback with failure" in {
       Given("we have a valid request")
-      val request = transmissionRequest(Json.parse(validRequestBody))
+      val request = transmissionRequest(Json.parse(validRequestBody()))
 
       And("MDG is failing repeatedly")
       stubMdgToFail()
@@ -188,8 +219,10 @@ class FileTransmissionAcceptanceTests
                | }""".stripMargin)))
     }
 
-  private def verifyConsumingServiceRetrievesFailureCallback(message: String) =
-    eventually(Timeout(scaled(Span(2, Seconds))),
+  private def verifyConsumingServiceRetrievesFailureCallback(message: String,
+                                                             timeout: Duration =
+                                                               20 seconds) =
+    eventually(Timeout(scaled(Span(timeout.toSeconds, Seconds))),
                Interval(scaled(Span(200, Millis)))) {
       consumingServiceServer.verify(
         postRequestedFor(urlEqualTo("/listen"))
@@ -251,15 +284,20 @@ class FileTransmissionAcceptanceTests
                 FakeHeaders(Seq((USER_AGENT, userAgent))),
                 body)
 
-  private def validRequestBody =
-    """
+  private def requestTimeoutField(requestTimeout: Option[Duration]) =
+    requestTimeout
+      .map(value => s""" "requestTimeoutInSeconds": ${value.toSeconds},""")
+      .getOrElse("")
+
+  private def validRequestBody(requestTimeout: Option[Duration] = None) =
+    s"""
       |{
       |	"batch": {
       |		"id": "fghij67890",
       |		"fileCount": 10
       |	},
       |	"callbackUrl": "http://localhost:11112/listen",
-      |	"requestTimeoutInSeconds": 300,
+      | ${requestTimeoutField(requestTimeout)}
       |	"file": {
       |		"reference": "abcde12345",
       |		"name": "someFileN.ame",

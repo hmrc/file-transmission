@@ -35,14 +35,15 @@ trait ServiceConfiguration {
 
   def initialBackoffAfterFailure: Duration
 
-  def maxRetryCount: Int
+  def defaultDeliveryWindowDuration: Duration
 
   def allowedCallbackProtocols: Seq[String]
 
   def mdgEndpoint: String
 }
 
-class PlayBasedServiceConfiguration @Inject()(configuration: Configuration) extends ServiceConfiguration {
+class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
+    extends ServiceConfiguration {
 
   override def allowedCallbackProtocols: Seq[String] =
     configuration
@@ -62,16 +63,24 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration) exte
       }
       .getOrElse(Nil)
 
-  override def mdgEndpoint: String                      = getRequired[String](configuration.getString(_, None), "mdgEndpoint")
-  override def queuePollingInterval: Duration           = getDuration("queuePollingInterval")
-  override def queueRetryAfterFailureInterval: Duration = getDuration("queueRetryAfterFailureInterval")
-  override def inFlightLockDuration: Duration           = getDuration("inFlightLockDuration")
-  override def initialBackoffAfterFailure: Duration     = getDuration("initialBackoffAfterFailure")
-  override def maxRetryCount: Int                       = getRequired[Int](configuration.getInt, "maxRetryCount")
+  override def mdgEndpoint: String =
+    getRequired[String](configuration.getString(_, None), "mdgEndpoint")
+  override def queuePollingInterval: Duration =
+    getDuration("queuePollingInterval")
+  override def queueRetryAfterFailureInterval: Duration =
+    getDuration("queueRetryAfterFailureInterval")
+  override def inFlightLockDuration: Duration =
+    getDuration("inFlightLockDuration")
+  override def initialBackoffAfterFailure: Duration =
+    getDuration("initialBackoffAfterFailure")
+  override def defaultDeliveryWindowDuration: Duration =
+    getDuration("deliveryWindowDuration")
 
   private def getDuration(key: String) =
-    Duration(getRequired[Long](configuration.getMilliseconds, key), TimeUnit.MILLISECONDS)
+    Duration(getRequired[Long](configuration.getMilliseconds, key),
+             TimeUnit.MILLISECONDS)
 
   private def getRequired[T](function: String => Option[T], key: String) =
-    function(key).getOrElse(throw new IllegalStateException(s"Configuration key not found: $key"))
+    function(key).getOrElse(
+      throw new IllegalStateException(s"Configuration key not found: $key"))
 }
