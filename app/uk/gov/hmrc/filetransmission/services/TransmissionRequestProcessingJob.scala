@@ -51,6 +51,7 @@ class TransmissionRequestProcessingJob @Inject()(
         case MdgRequestError(error) =>
           sendFailureCallback(item, error)
           ProcessingFailedDoNotRetry(error)
+
       }
     }
 
