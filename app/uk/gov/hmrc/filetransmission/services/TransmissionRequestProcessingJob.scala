@@ -53,7 +53,6 @@ class TransmissionRequestProcessingJob @Inject()(
           ProcessingFailedDoNotRetry(error)
 
 
-
       }
     }
 
