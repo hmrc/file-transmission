@@ -52,6 +52,7 @@ class TransmissionRequestProcessingJob @Inject()(
           sendFailureCallback(item, error)
           ProcessingFailedDoNotRetry(error)
 
+
       }
     }
 
