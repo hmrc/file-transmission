@@ -41,21 +41,18 @@ class TransmissionRequestProcessingJob @Inject()(
       logResult(item, result)
       result match {
         case MdgRequestSuccessful =>
-          sendSuccessfulCallback(item)
+          callbackSender.sendSuccessfulCallback(item.request)
           ProcessingSuccessful
         case MdgRequestFatalError(error) =>
-          sendFailureCallback(item, error)
+          callbackSender.sendFailedCallback(item.request, error)
           ProcessingFailedDoNotRetry(error)
         case MdgRequestError(error) if canRetry =>
           ProcessingFailed(error)
         case MdgRequestError(error) =>
-          sendFailureCallback(item, error)
+          callbackSender.sendFailedCallback(item.request, error)
           ProcessingFailedDoNotRetry(error)
-
-
       }
     }
-
   }
 
   private def logResult(request: TransmissionRequestEnvelope,
@@ -70,31 +67,4 @@ class TransmissionRequestProcessingJob @Inject()(
       case MdgRequestError(error) =>
         Logger.warn(s"Processing request ${request.describe} failed", error)
     }
-
-  private def sendSuccessfulCallback(request: TransmissionRequestEnvelope)(
-      implicit hc: HeaderCarrier): Unit = {
-    val callbackSendingResult =
-      callbackSender.sendSuccessfulCallback(request.request)
-    callbackSendingResult.onFailure {
-      case t: Throwable =>
-        Logger.warn(s"Failed to send callback for request ${request.describe}",
-                    t)
-    }
-
-  }
-
-  private def sendFailureCallback(
-      request: TransmissionRequestEnvelope,
-      error: Throwable)(implicit hc: HeaderCarrier): Unit = {
-
-    val callbackSendingResult =
-      callbackSender.sendFailedCallback(request.request, error)
-    callbackSendingResult.onFailure {
-      case t: Throwable =>
-        Logger.warn(s"Failed to send callback for request ${request.describe}",
-                    t)
-    }
-
-  }
-
 }

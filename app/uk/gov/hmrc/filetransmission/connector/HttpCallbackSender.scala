@@ -17,6 +17,7 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import javax.inject.Inject
+import play.api.Logger
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.filetransmission.services.CallbackSender
@@ -40,7 +41,13 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
 
     httpClient
       .POST[SuccessfulCallback, HttpResponse](request.callbackUrl.toString, callback)
-      .map(_ => ())
+      .map { response =>
+        Logger.info(s"Response from: [${request.callbackUrl}], to delivery successful callback: [${callback}], was: [${response.status}].")
+      } recoverWith {
+      case t: Throwable =>
+        Logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}], for request: [${request}].", t)
+        Future.failed(t).map(_ => ())
+    }
   }
 
   override def sendFailedCallback(request: TransmissionRequest, reason: Throwable)(
@@ -53,7 +60,12 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
 
     httpClient
       .POST[FailureCallback, HttpResponse](request.callbackUrl.toString, callback)
-      .map(_ => ())
-
+      .map { response =>
+        Logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [${callback}], was: [${response.status}].")
+      } recoverWith  {
+      case t: Throwable =>
+        Logger.error(s"Failed to send delivery failure callback to: [${request.callbackUrl}], for request: [${request}].", t)
+        Future.failed(t).map(_ => ())
+    }
   }
 }
