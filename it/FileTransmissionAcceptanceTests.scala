@@ -1,6 +1,7 @@
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.Scenario
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
@@ -13,10 +14,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
+import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.play.test.UnitSpec
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
+import scala.xml.PrettyPrinter
 
 class FileTransmissionAcceptanceTests
     extends UnitSpec
@@ -42,11 +45,13 @@ class FileTransmissionAcceptanceTests
   val consumingServiceServer = new WireMockServer(wireMockConfig().port(11112))
 
   override def beforeAll() = {
+    super.beforeAll()
     mdgServer.start()
     consumingServiceServer.start()
   }
 
   override def beforeEach() = {
+    super.beforeEach()
     mdgServer.resetAll()
     consumingServiceServer.resetAll()
   }
@@ -54,6 +59,7 @@ class FileTransmissionAcceptanceTests
   override def afterAll() = {
     mdgServer.stop()
     consumingServiceServer.stop()
+    super.afterAll()
   }
 
   "File Transmission Service" should {
@@ -74,11 +80,10 @@ class FileTransmissionAcceptanceTests
       Then("the response should that request has been consumed")
       status(response) shouldBe 204
 
-      And("MDG should receive the request")
-      verifyMdgServerRetrievesRequest
+      And("MDG should receive the request, with expected xml body")
+      verifyMdgReceivedRequestWithBody(consumingServiceJsonRequestBodyToMdgXmlRequestBody(validRequestBody()))
 
-      And(
-        "consuming service should receive confirmation that the request has been processed successfuly")
+      And("consuming service should receive confirmation that the request has been processed successfully")
       verifyConsumingServiceRetrievesSuccessfulCallback
 
     }
@@ -125,7 +130,7 @@ class FileTransmissionAcceptanceTests
       status(response) shouldBe 204
 
       And("MDG should receive the request")
-      verifyMdgServerRetrievesRequest
+      verifyMdgReceivedRequest
 
       And(
         "consuming service should receive confirmation that the request has been processed successfully")
@@ -151,7 +156,7 @@ class FileTransmissionAcceptanceTests
       status(response) shouldBe 204
 
       And("MDG should receive the request")
-      verifyMdgServerRetrievesRequest
+      verifyMdgReceivedRequest
 
       And(
         "consuming service should receive confirmation that the request processing has failed")
@@ -177,7 +182,7 @@ class FileTransmissionAcceptanceTests
       status(response) shouldBe 204
 
       And("MDG should receive the request")
-      verifyMdgServerRetrievesRequest
+      verifyMdgReceivedRequest
 
       And(
         "consuming service should receive confirmation that the request processing has failed")
@@ -197,13 +202,23 @@ class FileTransmissionAcceptanceTests
       Then("the response should indicate bad request")
       status(response) shouldBe 400
     }
-
   }
 
-  private def verifyMdgServerRetrievesRequest =
+  private def verifyMdgReceivedRequest =
+    buildAndVerifyMdgReceivedRequest {
+      postRequestedFor(urlEqualTo("/mdg"))
+    }
+
+  private def verifyMdgReceivedRequestWithBody(expectedXmlRequest: String) =
+    buildAndVerifyMdgReceivedRequest {
+      postRequestedFor(urlEqualTo("/mdg"))
+        .withRequestBody(equalToXml(expectedXmlRequest))
+    }
+
+  private def buildAndVerifyMdgReceivedRequest(requestBuilder: => RequestPatternBuilder) =
     eventually(Timeout(scaled(Span(2, Seconds))),
-               Interval(scaled(Span(200, Millis)))) {
-      mdgServer.verify(postRequestedFor(urlEqualTo("/mdg")))
+      Interval(scaled(Span(200, Millis)))) {
+      mdgServer.verify(requestBuilder)
     }
 
   private def verifyConsumingServiceRetrievesSuccessfulCallback =
@@ -325,4 +340,43 @@ class FileTransmissionAcceptanceTests
       |}
     """.stripMargin
 
+  private def consumingServiceJsonRequestBodyToMdgXmlRequestBody(body: String): String = {
+    val request: TransmissionRequest = Json.parse(body).as[TransmissionRequest]
+
+    val propertiesXml = for (property <- request.properties) yield <mdg:property>
+      <mdg:name>{property.name}</mdg:name>
+      <mdg:value>{property.value}</mdg:value>
+    </mdg:property>
+    val xml =
+      <mdg:BatchFileInterfaceMetadata
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:mdg="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema"
+      xsi:schemaLocation="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema BatchFileInterfaceMetadata-1.0.6.xsd">
+        <mdg:sourceSystem>MDTP</mdg:sourceSystem>
+        <mdg:sourceSystemType>AWS</mdg:sourceSystemType>
+        <mdg:interfaceName>{request.interface.name}</mdg:interfaceName>
+        <mdg:interfaceVersion>{request.interface.version}</mdg:interfaceVersion>
+        <mdg:correlationID>{request.file.reference}</mdg:correlationID>
+        <mdg:sequenceNumber>{request.file.sequenceNumber}</mdg:sequenceNumber>
+        <mdg:batchID>{request.batch.id}</mdg:batchID>
+        <mdg:batchSize>{request.batch.fileCount}</mdg:batchSize>
+        <mdg:batchCount>{request.file.sequenceNumber}</mdg:batchCount>
+        <mdg:checksum>{request.file.checksum}</mdg:checksum>
+        <mdg:checksumAlgorithm>SHA-256</mdg:checksumAlgorithm>
+        <mdg:fileSize>{request.file.size}</mdg:fileSize>
+        <mdg:compressed>false</mdg:compressed>
+        <mdg:encrypted>false</mdg:encrypted>
+        <mdg:properties>{propertiesXml}</mdg:properties>
+        <mdg:sourceLocation>{request.file.location.toString}</mdg:sourceLocation>
+        <mdg:sourceFileName>{request.file.name}</mdg:sourceFileName>
+        <mdg:sourceFileMimeType>{request.file.mimeType}</mdg:sourceFileMimeType>
+        <mdg:destinations>
+          <mdg:destination>
+            <mdg:destinationSystem>CDS</mdg:destinationSystem>
+          </mdg:destination>
+        </mdg:destinations>
+      </mdg:BatchFileInterfaceMetadata>
+
+    new PrettyPrinter(24, 4).format(xml)
+  }
 }
