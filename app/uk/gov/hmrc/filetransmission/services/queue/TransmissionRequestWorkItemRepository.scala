@@ -25,16 +25,19 @@ import play.api.libs.json.{Format, Reads, __}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
+import reactivemongo.play.json.collection.JSONCollection
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.workitem.{WorkItem, _}
 
+import scala.concurrent.{ExecutionContext, Future}
+
 class TransmissionRequestWorkItemRepository @Inject()(
     mongoComponent: ReactiveMongoComponent,
     configuration: ServiceConfiguration,
-    clock: Clock)
+    clock: Clock)(implicit ec: ExecutionContext)
     extends WorkItemRepository[TransmissionRequestEnvelope, BSONObjectID](
       collectionName = "transmission-request",
       mongo = mongoComponent.mongoConnector.db,
@@ -57,6 +60,10 @@ class TransmissionRequestWorkItemRepository @Inject()(
     val status = "status"
     val id = "_id"
     val failureCount = "failures"
+  }
+
+  def clearRequestQueue(): Future[Boolean] = {
+    mongoComponent.mongoConnector.db().collection[JSONCollection](name = "transmission-request").drop(failIfNotFound = false)
   }
 }
 

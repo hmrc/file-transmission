@@ -26,6 +26,7 @@ import uk.gov.hmrc.filetransmission.utils.UserAgentFilter
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.{ExecutionContext, Future}
+
 @Singleton()
 class TransmissionRequestController @Inject()(
     workItemService: WorkItemService,
@@ -50,4 +51,8 @@ class TransmissionRequestController @Inject()(
       }
   }
 
+  def clearRequestQueue() = Action.async {
+    workItemService.clearQueue().map(cleared => Ok(Json.parse(s"""{"cleared":"$cleared"}""")))
+  }
 }
+
