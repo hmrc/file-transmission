@@ -44,6 +44,8 @@ trait WorkItemService {
   def enqueue(request: TransmissionRequestEnvelope): Future[Unit]
 
   def processOne(): Future[Boolean]
+
+  def clearQueue(): Future[Boolean]
 }
 
 class MongoBackedWorkItemService @Inject()(
@@ -71,6 +73,8 @@ class MongoBackedWorkItemService @Inject()(
 
     somethingHasBeenProcessed
   }
+
+  override def clearQueue(): Future[Boolean] = repository.clearRequestQueue()
 
   private def processWorkItem(
       workItem: WorkItem[TransmissionRequestEnvelope]): Future[Unit] = {

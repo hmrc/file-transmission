@@ -31,6 +31,7 @@ class FileTransmissionAcceptanceTests
 
   override implicit lazy val app: Application = new GuiceApplicationBuilder()
     .configure(
+      "application.router" -> "testOnlyDoNotUseInAppConf.Routes",
       "userAgentFilter.allowedUserAgents" -> "PrepareUploadControllerISpec",
       "auditing.enabled" -> "false",
       "mdgEndpoint" -> "http://localhost:11111/mdg",
@@ -201,6 +202,15 @@ class FileTransmissionAcceptanceTests
 
       Then("the response should indicate bad request")
       status(response) shouldBe 400
+    }
+
+    "clear the request queue" in {
+      val request = FakeRequest(GET, "/test-only/file-transmission/requests/clear")
+
+      val response = route(app, request).get
+
+      status(response) shouldBe OK
+      contentAsString(response) shouldBe s"""{"cleared":"true"}"""
     }
   }
 

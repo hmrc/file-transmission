@@ -70,6 +70,10 @@ class WorkItemProcessingSchedulerSpec
 
       }
 
+    override def clearQueue(): Future[Boolean] = {
+      remainingItems = 0
+      Future.successful(true)
+    }
   }
 
   implicit val actorSystem = ActorSystem.create()
