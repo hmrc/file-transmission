@@ -17,6 +17,7 @@
 package uk.gov.hmrc.filetransmission.controllers
 
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
@@ -52,7 +53,9 @@ class TransmissionRequestController @Inject()(
   }
 
   def clearRequestQueue() = Action.async {
-    workItemService.clearQueue().map(cleared => Ok(Json.parse(s"""{"cleared":"$cleared"}""")))
+    workItemService.clearQueue().map{ cleared =>
+      Logger.info(s"Clear request queue result was: [$cleared].")
+      Ok(Json.parse(s"""{"cleared":"$cleared"}"""))}
   }
 }
 
