@@ -205,7 +205,7 @@ class FileTransmissionAcceptanceTests
     }
 
     "clear the request queue" in {
-      val request = FakeRequest(GET, "/test-only/file-transmission/requests/clear")
+      val request = FakeRequest(GET, "/file-transmission/test-only/requests/clear")
 
       val response = route(app, request).get
 
