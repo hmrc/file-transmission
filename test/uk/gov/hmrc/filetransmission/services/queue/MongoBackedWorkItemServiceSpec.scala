@@ -23,16 +23,14 @@ import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, GivenWhenThen, Matchers}
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
-import uk.gov.hmrc.filetransmission.utils.{
-  JodaTimeConverters,
-  SampleTransmissionRequest
-}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.workitem
 import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, Succeeded, WorkItem}
-import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
+
+import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
+import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
+import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters.{ClockJodaExtensions, fromJoda}
+import uk.gov.hmrc.filetransmission.utils.SampleTransmissionRequest
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -131,14 +129,14 @@ class MongoBackedWorkItemServiceSpec
         .thenReturn(Future.successful(Some(workItem)))
 
       And("processing for this item ends with success")
-      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(ProcessingSuccessful))
 
       When("requested processing next item from the queue")
       val moreItems = Await.result(service.processOne(), 10 seconds)
 
       Then("the item has been processed (and we assume we can retry it)")
-      Mockito.verify(job).process(envelope, canRetry = true)
+      Mockito.verify(job).process(ArgumentMatchers.eq(envelope), ArgumentMatchers.any(), ArgumentMatchers.any())
 
       And("item has been marked as done in the database")
       Mockito.verify(repository).complete(workItem.id, Succeeded)
@@ -173,7 +171,7 @@ class MongoBackedWorkItemServiceSpec
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(
           ProcessingFailed(new Exception("Planned exception"))))
 
@@ -225,7 +223,7 @@ class MongoBackedWorkItemServiceSpec
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(
           ProcessingFailedDoNotRetry(new Exception("Planned exception"))))
 
@@ -264,7 +262,7 @@ class MongoBackedWorkItemServiceSpec
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
         .thenReturn(Future.successful(
           ProcessingFailedDoNotRetry(new Exception("Planned exception"))))
 

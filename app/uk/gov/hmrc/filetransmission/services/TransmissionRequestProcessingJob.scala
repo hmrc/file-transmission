@@ -16,14 +16,16 @@
 
 package uk.gov.hmrc.filetransmission.services
 
-import cats.implicits._
 import javax.inject.Inject
+import org.joda.time.{DateTime, Instant}
 import play.api.Logger
+import uk.gov.hmrc.http.HeaderCarrier
+
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.{MdgRequestSuccessful, _}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.filetransmission.services.queue._
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,11 +36,15 @@ class TransmissionRequestProcessingJob @Inject()(
     extends QueueJob {
 
   override def process(item: TransmissionRequestEnvelope,
-                       canRetry: Boolean): Future[ProcessingResult] = {
+                       nextRetryTime: DateTime,
+                       timeToGiveUp: DateTime): Future[ProcessingResult] = {
     implicit val hc = HeaderCarrier()
 
     for (result <- mdgConnector.requestTransmission(item.request)) yield {
       logResult(item, result)
+      if (Instant.now().isAfter(timeToGiveUp)) {
+        Logger.warn(s"Failed to deliver notification within delivery window for file reference: [${item.request.file.reference}] before [$timeToGiveUp].")
+      }
       result match {
         case MdgRequestSuccessful =>
           callbackSender.sendSuccessfulCallback(item.request)
@@ -46,11 +52,14 @@ class TransmissionRequestProcessingJob @Inject()(
         case MdgRequestFatalError(error) =>
           callbackSender.sendFailedCallback(item.request, error)
           ProcessingFailedDoNotRetry(error)
-        case MdgRequestError(error) if canRetry =>
-          ProcessingFailed(error)
-        case MdgRequestError(error) =>
-          callbackSender.sendFailedCallback(item.request, error)
-          ProcessingFailedDoNotRetry(error)
+        case MdgRequestError(error) => {
+          if (nextRetryTime < timeToGiveUp) {
+            ProcessingFailed(error)
+          } else {
+            callbackSender.sendFailedCallback(item.request, error)
+            ProcessingFailedDoNotRetry(error)
+          }
+        }
       }
     }
   }

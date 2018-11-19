@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 
-import java.time.Clock
-
 import cats.data.OptionT
 import cats.implicits._
+import java.time.Clock
 import javax.inject.Inject
 import org.joda.time.DateTime
+import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, Succeeded, WorkItem}
+
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
-import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters
-import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
-import uk.gov.hmrc.workitem._
+import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters.{ClockJodaExtensions, JodaDateTimeExtensions, toJoda}
 
-import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait ProcessingResult
 case object ProcessingSuccessful extends ProcessingResult
@@ -37,7 +36,8 @@ case class ProcessingFailedDoNotRetry(error: Throwable) extends ProcessingResult
 
 trait QueueJob {
   def process(item: TransmissionRequestEnvelope,
-              canRetry: Boolean): Future[ProcessingResult]
+              nextRetryTime: DateTime,
+              timeToGiveUp: DateTime): Future[ProcessingResult]
 }
 
 trait WorkItemService {
@@ -81,9 +81,8 @@ class MongoBackedWorkItemService @Inject()(
     val request = workItem.item
 
     val nextRetryTime: DateTime = nextAvailabilityTime(workItem)
-    val canRetry = nextRetryTime < timeToGiveUp(workItem)
 
-    for (processingResult <- queueJob.process(request, canRetry)) yield {
+    for (processingResult <- queueJob.process(request, nextRetryTime, timeToGiveUp(workItem))) yield {
       processingResult match {
         case ProcessingSuccessful =>
           repository.complete(workItem.id, Succeeded)

@@ -22,19 +22,19 @@ import org.joda.time.{DateTime, DateTimeZone, Duration}
 
 object JodaTimeConverters {
 
-  implicit def toYoda(dateTime: java.time.ZonedDateTime) =
+  implicit def toJoda(dateTime: java.time.ZonedDateTime) =
     new DateTime(
       dateTime.toInstant.toEpochMilli,
       DateTimeZone.forTimeZone(TimeZone.getTimeZone(dateTime.getZone)))
 
-  implicit def fromYoda(dateTime: DateTime) = dateTime.toDate.toInstant
+  implicit def fromJoda(dateTime: DateTime) = dateTime.toDate.toInstant
 
-  implicit def toYoda(input: scala.concurrent.duration.Duration): Duration = {
+  implicit def toJoda(input: scala.concurrent.duration.Duration): Duration = {
     Duration.millis(input.toMillis)
   }
 
   implicit class ClockJodaExtensions(clock: Clock) {
-    def nowAsJoda = {
+    def nowAsJoda: DateTime = {
       new DateTime(
         clock.instant().toEpochMilli,
         DateTimeZone.forTimeZone(TimeZone.getTimeZone(clock.getZone)))

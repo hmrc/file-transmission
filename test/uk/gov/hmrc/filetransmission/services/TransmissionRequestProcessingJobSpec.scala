@@ -18,30 +18,23 @@ package uk.gov.hmrc.filetransmission.services
 
 import java.net.URL
 
+import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito.{verify, when}
-import org.mockito.{ArgumentCaptor, Mockito}
+import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
-import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.connector.{
-  MdgConnector,
-  MdgRequestError,
-  MdgRequestFatalError,
-  MdgRequestSuccessful
-}
-import uk.gov.hmrc.filetransmission.model._
-import uk.gov.hmrc.filetransmission.services.queue.{
-  ProcessingFailed,
-  ProcessingFailedDoNotRetry,
-  ProcessingSuccessful
-}
-import uk.gov.hmrc.play.test.UnitSpec
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import uk.gov.hmrc.play.test.UnitSpec
+
+import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
+import uk.gov.hmrc.filetransmission.connector.{MdgConnector, MdgRequestError, MdgRequestFatalError, MdgRequestSuccessful}
+import uk.gov.hmrc.filetransmission.model._
+import uk.gov.hmrc.filetransmission.services.queue.{ProcessingFailed, ProcessingFailedDoNotRetry, ProcessingSuccessful}
+
 
 class TransmissionRequestProcessingJobSpec
     extends UnitSpec
@@ -90,7 +83,7 @@ class TransmissionRequestProcessingJobSpec
       val result =
         Await.result(transmissionService.process(
                        TransmissionRequestEnvelope(request, "callingService"),
-                       true),
+          DateTime.now().plusSeconds(5), DateTime.now().minusSeconds(5)),
                      10 seconds)
 
       Then("immediate successful response is returned")
@@ -130,10 +123,11 @@ class TransmissionRequestProcessingJobSpec
 
       When("request made to transmission service")
       val result =
-        Await.result(transmissionService.process(
-                       TransmissionRequestEnvelope(request, "callingService"),
-                       canRetry = true),
-                     10 seconds)
+        Await.result(
+          transmissionService.process(
+            TransmissionRequestEnvelope(request, "callingService"),
+            DateTime.now(), DateTime.now().plusSeconds(5)),
+          10 seconds)
 
       Then("response saying that processing failed should be returned")
       result shouldBe a[ProcessingFailed]
@@ -170,10 +164,11 @@ class TransmissionRequestProcessingJobSpec
 
       When("request made to transmission service")
       val result =
-        Await.result(transmissionService.process(
-                       TransmissionRequestEnvelope(request, "callingService"),
-                       true),
-                     10 seconds)
+        Await.result(
+          transmissionService.process(
+            TransmissionRequestEnvelope(request, "callingService"),
+            ArgumentMatchers.any(), ArgumentMatchers.any()),
+          10 seconds)
 
       Then("response saying that processing failed should be returned")
       result shouldBe a[ProcessingFailedDoNotRetry]
@@ -217,10 +212,11 @@ class TransmissionRequestProcessingJobSpec
 
       When("request made to transmission service")
       val result =
-        Await.result(transmissionService.process(
-                       TransmissionRequestEnvelope(request, "callingService"),
-                       canRetry = false),
-                     10 seconds)
+        Await.result(
+          transmissionService.process(
+            TransmissionRequestEnvelope(request, "callingService"),
+            DateTime.now().plusSeconds(5), DateTime.now()),
+          10 seconds)
 
       Then(
         "response saying that processing failed and no more retry attemts are required, should be returned")
