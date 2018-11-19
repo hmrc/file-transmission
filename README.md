@@ -171,7 +171,7 @@ In case passing the request to MDG failed, the consuming service retrieves callb
 If file-transmission fails to deliver the message to MDG it will make several attempts to redeliver it after delay.
 If it fails to deliver it within certain delivery window, failure notification callback will be sent to consuming service.
 
-Default length of delivery window is set in the service configuration (`initialBackoffAfterFailure` parameter).
+Default length of delivery window is set in the application configuration (`deliveryWindowDuration` parameter).
 It can be customized per request by setting `deliveryWindowDurationInSeconds` parameter within the request body.
 
 Initial retry delay is defined by `initialBackoffAfterFailure` property set in the service configuration. After every failed attempt, this delay
