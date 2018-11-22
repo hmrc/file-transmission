@@ -139,7 +139,7 @@ Here is an example of a request body for `file-transmission`:
 
 ### Request outcome <a name="service__outcome"></a>
 
-A successful POST request will receive a HTTP 204 response with an empty body.
+A successful POST request will receive a ‘202 ACCEPTED’ result.
 
 An unsuccessful POST request will receive a HTTP-error coded response (4xx, 5xx). The response body will contain XML encoded details of the problem. See the Error Handling section for details.
 
