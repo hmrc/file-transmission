@@ -128,7 +128,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
-        status(result) shouldBe Status.NO_CONTENT
+        status(result) shouldBe Status.ACCEPTED
       }
     }
 

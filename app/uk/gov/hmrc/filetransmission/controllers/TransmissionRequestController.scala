@@ -46,7 +46,7 @@ class TransmissionRequestController @Inject()(
             case _ =>
               val envelope =
                 TransmissionRequestEnvelope(transmissionRequest, serviceName)
-              workItemService.enqueue(envelope).map(_ => NoContent)
+              workItemService.enqueue(envelope).map(_ => Accepted)
           }
         }
       }

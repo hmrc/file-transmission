@@ -79,7 +79,7 @@ class FileTransmissionAcceptanceTests
       val response = route(app, request).get
 
       Then("the response should that request has been consumed")
-      status(response) shouldBe 204
+      status(response) shouldBe 202
 
       And("MDG should receive the request, with expected xml body")
       verifyMdgReceivedRequestWithBody(consumingServiceJsonRequestBodyToMdgXmlRequestBody(validRequestBody()))
@@ -103,7 +103,7 @@ class FileTransmissionAcceptanceTests
       val response = route(app, request).get
 
       Then("the response should that request has been consumed")
-      status(response) shouldBe 204
+      status(response) shouldBe 202
 
       And(
         "consuming service should receive notification that the request processing failed")
@@ -128,7 +128,7 @@ class FileTransmissionAcceptanceTests
       val response = route(app, request).get
 
       Then("the response should that request has been consumed")
-      status(response) shouldBe 204
+      status(response) shouldBe 202
 
       And("MDG should receive the request")
       verifyMdgReceivedRequest
@@ -154,7 +154,7 @@ class FileTransmissionAcceptanceTests
       val response = route(app, request).get
 
       Then("the response should that request has been consumed")
-      status(response) shouldBe 204
+      status(response) shouldBe 202
 
       And("MDG should receive the request")
       verifyMdgReceivedRequest
@@ -180,7 +180,7 @@ class FileTransmissionAcceptanceTests
       val response = route(app, request).get
 
       Then("the response should that request has been consumed")
-      status(response) shouldBe 204
+      status(response) shouldBe 202
 
       And("MDG should receive the request")
       verifyMdgReceivedRequest
