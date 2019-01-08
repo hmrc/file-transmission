@@ -21,6 +21,7 @@ import play.api.Logger
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.filetransmission.services.CallbackSender
+import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -42,11 +43,15 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
     httpClient
       .POST[SuccessfulCallback, HttpResponse](request.callbackUrl.toString, callback)
       .map { response =>
-        Logger.info(s"Response from: [${request.callbackUrl}], to delivery successful callback: [${callback}], was: [${response.status}].")
+        withLoggedContext(request) {
+          Logger.info(s"Response from: [${request.callbackUrl}], to delivery successful callback: [${callback}], was: [${response.status}].")
+        }
       } recoverWith {
       case t: Throwable =>
-        Logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}], for request: [${request}].", t)
-        Future.failed(t).map(_ => ())
+        withLoggedContext(request) {
+          Logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}], for request: [${request}].", t)
+          Future.failed(t).map(_ => ())
+        }
     }
   }
 
@@ -61,11 +66,15 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
     httpClient
       .POST[FailureCallback, HttpResponse](request.callbackUrl.toString, callback)
       .map { response =>
-        Logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [${callback}], was: [${response.status}].")
+        withLoggedContext(request) {
+          Logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [${callback}], was: [${response.status}].")
+        }
       } recoverWith  {
       case t: Throwable =>
-        Logger.error(s"Failed to send delivery failure callback to: [${request.callbackUrl}], for request: [${request}].", t)
-        Future.failed(t).map(_ => ())
+        withLoggedContext(request) {
+          Logger.error(s"Failed to send delivery failure callback to: [${request.callbackUrl}], for request: [${request}].", t)
+          Future.failed(t).map(_ => ())
+        }
     }
   }
 }
