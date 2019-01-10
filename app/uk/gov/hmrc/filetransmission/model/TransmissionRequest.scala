@@ -88,7 +88,7 @@ object TransmissionRequest {
     override def extract(request: TransmissionRequest): Map[String, String] =
       Map(
         "file-reference"  -> request.file.reference,
-        "batch.reference" -> request.batch.id
+        "batch-reference" -> request.batch.id
       )
   }
 }

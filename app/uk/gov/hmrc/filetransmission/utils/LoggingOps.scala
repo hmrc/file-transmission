@@ -17,7 +17,6 @@
 package uk.gov.hmrc.filetransmission.utils
 
 import org.slf4j.MDC
-import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 
 object LoggingOps {
   trait ContextExtractor[T] {
