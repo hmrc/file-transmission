@@ -17,6 +17,7 @@
 package uk.gov.hmrc.filetransmission.services
 
 import java.net.URL
+import java.time.Clock
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{any, eq => meq}
@@ -25,11 +26,11 @@ import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import uk.gov.hmrc.play.test.UnitSpec
-
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.{MdgConnector, MdgRequestError, MdgRequestFatalError, MdgRequestSuccessful}
 import uk.gov.hmrc.filetransmission.model._
@@ -44,6 +45,8 @@ class TransmissionRequestProcessingJobSpec
     with Eventually {
 
   "transmission request" should {
+
+    val clock = Clock.systemUTC()
 
     val request: TransmissionRequest = TransmissionRequest(
       Batch("A", 10),
@@ -69,7 +72,8 @@ class TransmissionRequestProcessingJobSpec
       val transmissionService =
         new TransmissionRequestProcessingJob(mdgConnector,
                                              notificationService,
-                                             configuration)
+                                             configuration,
+                                             clock)
 
       Given("MDG is working fine")
       when(mdgConnector.requestTransmission(any())(any()))
@@ -110,7 +114,8 @@ class TransmissionRequestProcessingJobSpec
       val transmissionService =
         new TransmissionRequestProcessingJob(mdgConnector,
                                              notificationService,
-                                             configuration)
+                                             configuration,
+                                             clock)
 
       Given("MDG is faulty")
       when(mdgConnector.requestTransmission(any())(any()))
@@ -151,7 +156,8 @@ class TransmissionRequestProcessingJobSpec
       val transmissionService =
         new TransmissionRequestProcessingJob(mdgConnector,
                                              notificationService,
-                                             configuration)
+                                             configuration,
+                                             clock)
 
       Given("MDG is faulty")
       when(mdgConnector.requestTransmission(any())(any()))
@@ -167,7 +173,7 @@ class TransmissionRequestProcessingJobSpec
         Await.result(
           transmissionService.process(
             TransmissionRequestEnvelope(request, "callingService"),
-            ArgumentMatchers.any(), ArgumentMatchers.any()),
+            DateTime.now(), DateTime.now().plusSeconds(5)),
           10 seconds)
 
       Then("response saying that processing failed should be returned")
@@ -199,7 +205,8 @@ class TransmissionRequestProcessingJobSpec
       val transmissionService =
         new TransmissionRequestProcessingJob(mdgConnector,
                                              notificationService,
-                                             configuration)
+                                             configuration,
+                                             clock)
 
       Given("MDG is faulty")
       when(mdgConnector.requestTransmission(any())(any()))

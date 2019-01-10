@@ -16,23 +16,26 @@
 
 package uk.gov.hmrc.filetransmission.services
 
+import java.time.Clock
+
 import javax.inject.Inject
 import org.joda.time.{DateTime, Instant}
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
-
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.{MdgRequestSuccessful, _}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.filetransmission.services.queue._
 import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
+import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class TransmissionRequestProcessingJob @Inject()(
     mdgConnector: MdgConnector,
     callbackSender: CallbackSender,
-    configuration: ServiceConfiguration)(implicit ec: ExecutionContext)
+    configuration: ServiceConfiguration,
+    clock: Clock)(implicit ec: ExecutionContext)
     extends QueueJob {
 
   override def process(item: TransmissionRequestEnvelope,
@@ -41,23 +44,25 @@ class TransmissionRequestProcessingJob @Inject()(
     implicit val hc = HeaderCarrier()
 
     for (result <- mdgConnector.requestTransmission(item.request)) yield {
-      logResult(item, result)
-      if (Instant.now().isAfter(timeToGiveUp)) {
-        Logger.warn(s"Failed to deliver notification within delivery window for file reference: [${item.request.file.reference}] before [$timeToGiveUp].")
-      }
-      result match {
-        case MdgRequestSuccessful =>
-          callbackSender.sendSuccessfulCallback(item.request)
-          ProcessingSuccessful
-        case MdgRequestFatalError(error) =>
-          callbackSender.sendFailedCallback(item.request, error)
-          ProcessingFailedDoNotRetry(error)
-        case MdgRequestError(error) => {
-          if (nextRetryTime < timeToGiveUp) {
-            ProcessingFailed(error)
-          } else {
+      withLoggedContext(item.request) {
+        logResult(item, result)
+        if (clock.instant().isAfter(timeToGiveUp)) {
+          Logger.warn(s"Failed to deliver notification within delivery window for file reference: [${item.request.file.reference}] before [$timeToGiveUp].")
+        }
+        result match {
+          case MdgRequestSuccessful =>
+            callbackSender.sendSuccessfulCallback(item.request)
+            ProcessingSuccessful
+          case MdgRequestFatalError(error) =>
             callbackSender.sendFailedCallback(item.request, error)
             ProcessingFailedDoNotRetry(error)
+          case MdgRequestError(error) => {
+            if (nextRetryTime < timeToGiveUp) {
+              ProcessingFailed(error)
+            } else {
+              callbackSender.sendFailedCallback(item.request, error)
+              ProcessingFailedDoNotRetry(error)
+            }
           }
         }
       }

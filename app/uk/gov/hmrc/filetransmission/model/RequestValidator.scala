@@ -21,20 +21,22 @@ import java.net.URL
 import javax.inject.Inject
 import play.api.Logger
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
+import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
 
 class RequestValidator @Inject()(configuration: ServiceConfiguration) {
 
   private val allowedCallbackProtocols: Seq[String] = configuration.allowedCallbackProtocols
 
   def validate(request: TransmissionRequest): Either[String, Unit] = {
+    withLoggedContext(request) {
+      val callbackUrl: URL = request.callbackUrl
+      val isAllowedCallbackProtocol: Boolean = allowedCallbackProtocols.contains(request.callbackUrl.getProtocol)
 
-    val callbackUrl: URL = request.callbackUrl
-    val isAllowedCallbackProtocol: Boolean = allowedCallbackProtocols.contains(request.callbackUrl.getProtocol)
-
-    if (isAllowedCallbackProtocol) Right(())
-    else {
-      Logger.warn(s"Invalid callback url protocol: [$callbackUrl].")
-      Left(s"Invalid callback url protocol: [$callbackUrl]. Protocol must be in: [${allowedCallbackProtocols.mkString(",")}].")
+      if (isAllowedCallbackProtocol) Right(())
+      else {
+        Logger.warn(s"Invalid callback url protocol: [$callbackUrl].")
+        Left(s"Invalid callback url protocol: [$callbackUrl]. Protocol must be in: [${allowedCallbackProtocols.mkString(",")}].")
+      }
     }
   }
 

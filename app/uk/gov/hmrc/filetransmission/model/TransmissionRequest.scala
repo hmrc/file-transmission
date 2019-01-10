@@ -21,6 +21,7 @@ import java.net.URL
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
 import uk.gov.hmrc.filetransmission.utils.HttpUrlFormat
+import uk.gov.hmrc.filetransmission.utils.LoggingOps.ContextExtractor
 
 import scala.concurrent.duration._
 
@@ -83,6 +84,13 @@ object TransmissionRequest {
         timeInSecondsFormat)
   )(TransmissionRequest.apply, unlift(TransmissionRequest.unapply))
 
+  implicit val requestExtractor = new ContextExtractor[TransmissionRequest] {
+    override def extract(request: TransmissionRequest): Map[String, String] =
+      Map(
+        "file-reference"  -> request.file.reference,
+        "batch.reference" -> request.batch.id
+      )
+  }
 }
 
 object TransmissionRequestEnvelope {

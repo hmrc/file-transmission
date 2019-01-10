@@ -50,7 +50,6 @@ class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, con
           case Success(true) =>
             self ! Poll
           case Success(false) =>
-            log.info("Waiting")
             context.system.scheduler.scheduleOnce(pollingInterval, self, Poll)
           case Failure(f) =>
             log.error(f, s"Queue processing failed")

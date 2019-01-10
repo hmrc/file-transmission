@@ -29,6 +29,8 @@ object JodaTimeConverters {
 
   implicit def fromJoda(dateTime: DateTime) = dateTime.toDate.toInstant
 
+  implicit def toJoda(jInstant: java.time.Instant) = new org.joda.time.Instant(jInstant.toEpochMilli)
+
   implicit def toJoda(input: scala.concurrent.duration.Duration): Duration = {
     Duration.millis(input.toMillis)
   }
