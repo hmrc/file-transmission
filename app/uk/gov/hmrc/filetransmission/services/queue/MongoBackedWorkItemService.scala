@@ -18,14 +18,16 @@ package uk.gov.hmrc.filetransmission.services.queue
 
 import cats.data.OptionT
 import cats.implicits._
-import java.time.Clock
+import java.time.{Clock, Instant}
+
 import javax.inject.Inject
 import org.joda.time.DateTime
-import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, Succeeded, WorkItem}
+import uk.gov.hmrc.workitem.{WorkItem, _}
 
+import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.workitem._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
+import uk.gov.hmrc.filetransmission.model.{FailedDeliveryAttempt, TransmissionRequestEnvelope}
 import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters.{ClockJodaExtensions, JodaDateTimeExtensions, toJoda}
 
 
@@ -77,7 +79,22 @@ class MongoBackedWorkItemService @Inject()(
   override def clearQueue(): Future[Boolean] = repository.clearRequestQueue()
 
   private def processWorkItem(
-      workItem: WorkItem[TransmissionRequestEnvelope]): Future[Unit] = {
+      workItem: WorkItem[TransmissionRequestEnvelope],
+      processedAt: Instant = clock.instant
+  ): Future[Unit] = {
+
+    // Update the work item with the latest FailedDeliveryAttempt, then update the status.
+    def updateStatusForFailedDeliveryAttempt(status: ResultStatus,
+                                             availableAt: Option[DateTime],
+                                             ex: Throwable): Future[Boolean] = {
+      val updatedEnvelope = workItem.item.withFailedDeliveryAttempt(FailedDeliveryAttempt(processedAt, ex.getMessage))
+
+      for {
+        _       <- repository.markAs(workItem.id, status, availableAt)
+        updated <- repository.updateWorkItemBodyDeliveryAttempts(workItem.id, updatedEnvelope)
+      } yield updated
+    }
+
     val request = workItem.item
 
     val nextRetryTime: DateTime = nextAvailabilityTime(workItem)
@@ -86,10 +103,10 @@ class MongoBackedWorkItemService @Inject()(
       processingResult match {
         case ProcessingSuccessful =>
           repository.complete(workItem.id, Succeeded)
-        case ProcessingFailed(_) =>
-          repository.markAs(workItem.id, Failed, Some(nextRetryTime))
-        case ProcessingFailedDoNotRetry(_) =>
-          repository.markAs(workItem.id, PermanentlyFailed, None)
+        case ProcessingFailed(ex) =>
+          updateStatusForFailedDeliveryAttempt(Failed, Some(nextRetryTime), ex)
+        case ProcessingFailedDoNotRetry(ex) =>
+          updateStatusForFailedDeliveryAttempt(PermanentlyFailed, None, ex)
       }
     }
   }
@@ -98,10 +115,12 @@ class MongoBackedWorkItemService @Inject()(
 
   private def nextAvailabilityTime[T](workItem: WorkItem[T]): DateTime = {
 
+    val dateTimeNow = now()
+
     val multiplier = Math.pow(2, workItem.failureCount).toInt
     val delay = configuration.initialBackoffAfterFailure * multiplier
 
-    now() + delay
+    dateTimeNow + delay
   }
 
   private def timeToGiveUp(

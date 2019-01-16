@@ -110,7 +110,7 @@ class FileTransmissionAcceptanceTests
       verifyConsumingServiceRetrievesFailureCallback(
         "POST of 'http://localhost:11111/mdg' returned 400 (Bad Request). Response body ''")
 
-      And("MDG was called ocne and only once")
+      And("MDG was called once and only once")
       mdgServer.verify(1, postRequestedFor(urlEqualTo("/mdg")))
     }
 
