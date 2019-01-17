@@ -21,11 +21,11 @@ import java.time.Clock
 import javax.inject.Inject
 import org.joda.time.{DateTime, Duration}
 import play.api.libs.functional.syntax.{unlift, _}
-import play.api.libs.json.{Format, Reads, __}
+import play.api.libs.json.{Format, Json, Reads, __}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.bson.BSONObjectID
+import reactivemongo.play.json.BSONObjectIDFormat
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import reactivemongo.play.json.collection.JSONCollection
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
@@ -63,7 +63,16 @@ class TransmissionRequestWorkItemRepository @Inject()(
   }
 
   def clearRequestQueue(): Future[Boolean] = {
-    mongoComponent.mongoConnector.db().collection[JSONCollection](name = "transmission-request").drop(failIfNotFound = false)
+    collection.drop(failIfNotFound = false)
+  }
+
+  def updateWorkItemBodyDeliveryAttempts(workItemId: BSONObjectID,
+                                         body: TransmissionRequestEnvelope): Future[Boolean] = {
+    val selector = Json.obj(workItemFields.id -> workItemId)
+
+    val updater  = Json.obj("$set" -> Json.obj("body.deliveryAttempts" -> body.deliveryAttempts))
+
+    collection.update(selector, updater).map(_.n > 0)
   }
 }
 

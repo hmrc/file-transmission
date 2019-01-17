@@ -22,7 +22,7 @@ import java.time.Clock
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito.{verify, when}
-import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
+import org.mockito.{ArgumentCaptor, Mockito}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
@@ -63,6 +63,8 @@ class TransmissionRequestProcessingJobSpec
       Some(30 seconds)
     )
 
+    val envelope = TransmissionRequestEnvelope(request, "TransmissionRequestProcessingJobSpec")
+
     "immediately return success, call MDG and send successful callback to consuming service afterwards" in {
 
       val mdgConnector = mock[MdgConnector]
@@ -86,7 +88,7 @@ class TransmissionRequestProcessingJobSpec
       When("request made to transmission service")
       val result =
         Await.result(transmissionService.process(
-                       TransmissionRequestEnvelope(request, "callingService"),
+          envelope,
           DateTime.now().plusSeconds(5), DateTime.now().minusSeconds(5)),
                      10 seconds)
 
@@ -118,7 +120,7 @@ class TransmissionRequestProcessingJobSpec
                                              clock)
 
       Given("MDG is faulty")
-      when(mdgConnector.requestTransmission(any())(any()))
+      when(mdgConnector.requestTransmission(any[TransmissionRequest])(any()))
         .thenReturn(Future.successful(
           MdgRequestError(new Exception("Planned exception"))))
 
@@ -130,7 +132,7 @@ class TransmissionRequestProcessingJobSpec
       val result =
         Await.result(
           transmissionService.process(
-            TransmissionRequestEnvelope(request, "callingService"),
+            envelope,
             DateTime.now(), DateTime.now().plusSeconds(5)),
           10 seconds)
 
@@ -172,7 +174,7 @@ class TransmissionRequestProcessingJobSpec
       val result =
         Await.result(
           transmissionService.process(
-            TransmissionRequestEnvelope(request, "callingService"),
+            envelope,
             DateTime.now(), DateTime.now().plusSeconds(5)),
           10 seconds)
 
@@ -221,7 +223,7 @@ class TransmissionRequestProcessingJobSpec
       val result =
         Await.result(
           transmissionService.process(
-            TransmissionRequestEnvelope(request, "callingService"),
+            envelope,
             DateTime.now().plusSeconds(5), DateTime.now()),
           10 seconds)
 

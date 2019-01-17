@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 
+import java.util.concurrent.{Executors, TimeUnit}
+
 import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import akka.event.Logging
 import javax.inject.Inject
@@ -61,7 +63,12 @@ class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, con
 
   private val pollingActor = actorSystem.actorOf(Props(new ContinuousPollingActor()))
 
-  pollingActor ! Poll
+  val bootstrap = new Runnable {
+    override def run(): Unit = pollingActor ! Poll
+  }
+
+  // Start the polling after a delay.
+  Executors.newScheduledThreadPool(1).schedule(bootstrap, pollingInterval.toMillis, TimeUnit.MILLISECONDS)
 
   def shutDown() =
     pollingActor ! PoisonPill

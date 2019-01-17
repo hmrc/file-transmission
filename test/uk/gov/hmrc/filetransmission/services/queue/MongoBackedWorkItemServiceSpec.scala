@@ -18,15 +18,15 @@ package uk.gov.hmrc.filetransmission.services.queue
 import java.time.{Clock, Instant, ZoneId}
 
 import org.joda.time.DateTime
-import org.mockito.Mockito.when
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, GivenWhenThen, Matchers}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.workitem
-import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, Succeeded, WorkItem}
-
+import uk.gov.hmrc.workitem._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters.{ClockJodaExtensions, fromJoda}
@@ -64,9 +64,12 @@ class MongoBackedWorkItemServiceSpec
 
       when(
         repository.pushNew(
-          ArgumentMatchers.any[TransmissionRequestEnvelope](),
-          ArgumentMatchers.any())(ArgumentMatchers.any[ExecutionContext]))
+          any[TransmissionRequestEnvelope](),
+          any())(any[ExecutionContext]))
         .thenReturn(Future.successful(createWorkItem(envelope)))
+
+      when(repository.updateWorkItemBodyDeliveryAttempts(any[BSONObjectID], any[TransmissionRequestEnvelope]))
+        .thenReturn(Future.successful(true))
 
       val service =
         new MongoBackedWorkItemService(repository, job, configuration, clock)
@@ -92,8 +95,8 @@ class MongoBackedWorkItemServiceSpec
 
       when(
         repository.pullOutstanding(
-          ArgumentMatchers.any(),
-          ArgumentMatchers.any())(ArgumentMatchers.any[ExecutionContext]))
+          any(),
+          any())(any[ExecutionContext]))
         .thenReturn(Future.successful(None))
 
       When("requested processing next item from the queue")
@@ -124,19 +127,19 @@ class MongoBackedWorkItemServiceSpec
 
       when(
         repository.pullOutstanding(
-          ArgumentMatchers.any(),
-          ArgumentMatchers.any())(ArgumentMatchers.any[ExecutionContext]))
+          any(),
+          any())(any[ExecutionContext]))
         .thenReturn(Future.successful(Some(workItem)))
 
       And("processing for this item ends with success")
-      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(job.process(any(), any(), any()))
         .thenReturn(Future.successful(ProcessingSuccessful))
 
       When("requested processing next item from the queue")
       val moreItems = Await.result(service.processOne(), 10 seconds)
 
       Then("the item has been processed (and we assume we can retry it)")
-      Mockito.verify(job).process(ArgumentMatchers.eq(envelope), ArgumentMatchers.any(), ArgumentMatchers.any())
+      Mockito.verify(job).process(ArgumentMatchers.eq(envelope), any(), any())
 
       And("item has been marked as done in the database")
       Mockito.verify(repository).complete(workItem.id, Succeeded)
@@ -165,13 +168,18 @@ class MongoBackedWorkItemServiceSpec
 
       when(
         repository.pullOutstanding(
-          ArgumentMatchers.any(),
-          ArgumentMatchers.any())(ArgumentMatchers.any[ExecutionContext]))
+          any(),
+          any())(any[ExecutionContext]))
         .thenReturn(Future.successful(Some(workItem)))
+
+      when(repository.markAs(any[BSONObjectID], any[ProcessingStatus], any[Option[DateTime]])(any[ExecutionContext]))
+          .thenReturn(Future.successful(true))
+      when(repository.updateWorkItemBodyDeliveryAttempts(any[BSONObjectID], any[TransmissionRequestEnvelope]))
+        .thenReturn(Future.successful(true))
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(job.process(any(), any(), any()))
         .thenReturn(Future.successful(
           ProcessingFailed(new Exception("Planned exception"))))
 
@@ -185,7 +193,7 @@ class MongoBackedWorkItemServiceSpec
         .verify(repository)
         .markAs(ArgumentMatchers.eq(workItem.id),
                 ArgumentMatchers.eq(Failed),
-                retryTimeCaptor.capture())(ArgumentMatchers.any())
+                retryTimeCaptor.capture())(any())
 
       And("retry time is 10 seconds * 2 ^ tries so far = 10 * 4 = 40s")
       val retryTime: Instant = retryTimeCaptor.getValue.get
@@ -217,13 +225,18 @@ class MongoBackedWorkItemServiceSpec
 
       when(
         repository.pullOutstanding(
-          ArgumentMatchers.any(),
-          ArgumentMatchers.any())(ArgumentMatchers.any[ExecutionContext]))
+          any(),
+          any())(any[ExecutionContext]))
         .thenReturn(Future.successful(Some(workItem)))
+
+      when(repository.markAs(any[BSONObjectID], any[ProcessingStatus], any[Option[DateTime]])(any[ExecutionContext]))
+        .thenReturn(Future.successful(true))
+      when(repository.updateWorkItemBodyDeliveryAttempts(any[BSONObjectID], any[TransmissionRequestEnvelope]))
+        .thenReturn(Future.successful(true))
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(job.process(any(), any(), any()))
         .thenReturn(Future.successful(
           ProcessingFailedDoNotRetry(new Exception("Planned exception"))))
 
@@ -256,13 +269,18 @@ class MongoBackedWorkItemServiceSpec
 
       when(
         repository.pullOutstanding(
-          ArgumentMatchers.any(),
-          ArgumentMatchers.any())(ArgumentMatchers.any[ExecutionContext]))
+          any(),
+          any())(any[ExecutionContext]))
         .thenReturn(Future.successful(Some(workItem)))
+
+      when(repository.markAs(any[BSONObjectID], any[ProcessingStatus], any[Option[DateTime]])(any[ExecutionContext]))
+        .thenReturn(Future.successful(true))
+      when(repository.updateWorkItemBodyDeliveryAttempts(any[BSONObjectID], any[TransmissionRequestEnvelope]))
+        .thenReturn(Future.successful(true))
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+      when(job.process(any(), any(), any()))
         .thenReturn(Future.successful(
           ProcessingFailedDoNotRetry(new Exception("Planned exception"))))
 

@@ -24,7 +24,7 @@ import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.{MdgRequestSuccessful, _}
-import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
+import uk.gov.hmrc.filetransmission.model.{FailedDeliveryAttempt, TransmissionRequestEnvelope}
 import uk.gov.hmrc.filetransmission.services.queue._
 import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
@@ -42,26 +42,33 @@ class TransmissionRequestProcessingJob @Inject()(
                        nextRetryTime: DateTime,
                        timeToGiveUp: DateTime): Future[ProcessingResult] = {
     implicit val hc = HeaderCarrier()
+    val now = clock.instant
+
+    def permanentlyFailed(envelope: TransmissionRequestEnvelope, error: Throwable): ProcessingFailedDoNotRetry = {
+      val updatedItem = item.withFailedDeliveryAttempt(new FailedDeliveryAttempt(now, error.getMessage))
+
+      Logger.warn(s"Permanently failed to deliver request. Delivery window expiry time: [$timeToGiveUp]. Failed delivery attempts were: [${updatedItem.deliveryAttempts.mkString(",")}].", error)
+
+      ProcessingFailedDoNotRetry(error)
+    }
 
     for (result <- mdgConnector.requestTransmission(item.request)) yield {
       withLoggedContext(item.request) {
         logResult(item, result)
-        if (clock.instant().isAfter(timeToGiveUp)) {
-          Logger.warn(s"Failed to deliver notification within delivery window for file reference: [${item.request.file.reference}] before [$timeToGiveUp].")
-        }
+
         result match {
           case MdgRequestSuccessful =>
             callbackSender.sendSuccessfulCallback(item.request)
             ProcessingSuccessful
           case MdgRequestFatalError(error) =>
             callbackSender.sendFailedCallback(item.request, error)
-            ProcessingFailedDoNotRetry(error)
+            permanentlyFailed(item, error)
           case MdgRequestError(error) => {
             if (nextRetryTime < timeToGiveUp) {
               ProcessingFailed(error)
             } else {
               callbackSender.sendFailedCallback(item.request, error)
-              ProcessingFailedDoNotRetry(error)
+              permanentlyFailed(item, error)
             }
           }
         }
@@ -73,7 +80,7 @@ class TransmissionRequestProcessingJob @Inject()(
                         result: MdgRequestResult): Unit =
     result match {
       case MdgRequestSuccessful =>
-        Logger.info(s"Request ${request.describe} processed successfully")
+        Logger.debug(s"Request ${request.describe} processed successfully")
       case MdgRequestFatalError(error) =>
         Logger.warn(
           s"Processing request ${request.describe} failed - non recoverable error",

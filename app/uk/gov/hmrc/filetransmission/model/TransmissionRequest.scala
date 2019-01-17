@@ -17,6 +17,7 @@
 package uk.gov.hmrc.filetransmission.model
 
 import java.net.URL
+import java.time.Instant
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
@@ -24,6 +25,9 @@ import uk.gov.hmrc.filetransmission.utils.HttpUrlFormat
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.ContextExtractor
 
 import scala.concurrent.duration._
+
+case class FailedDeliveryAttempt(time: Instant,
+                                 failureReason: String)
 
 case class TransmissionRequest(batch: Batch,
                                interface: Interface,
@@ -34,11 +38,17 @@ case class TransmissionRequest(batch: Batch,
 
 case class TransmissionRequestEnvelope(
     request: TransmissionRequest,
-    serviceName: String
+    serviceName: String,
+    deliveryAttempts: Seq[FailedDeliveryAttempt] = Seq.empty
 ) {
+  def withFailedDeliveryAttempt(da: FailedDeliveryAttempt): TransmissionRequestEnvelope = {
+    this.copy(
+      deliveryAttempts = deliveryAttempts :+ da
+    )
+  }
+
   def describe =
     s"consumingService: [$serviceName] fileReference: [${request.file.reference}] batchId: [${request.batch.id}]"
-
 }
 
 case class Batch(id: String, fileCount: Int)
@@ -91,6 +101,10 @@ object TransmissionRequest {
         "batch-reference" -> request.batch.id
       )
   }
+}
+
+object FailedDeliveryAttempt {
+  implicit val failedDeliveryFormat = Json.format[FailedDeliveryAttempt]
 }
 
 object TransmissionRequestEnvelope {
