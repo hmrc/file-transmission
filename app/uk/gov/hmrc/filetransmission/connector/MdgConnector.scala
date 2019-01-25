@@ -26,10 +26,18 @@ import cats.implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-sealed trait MdgRequestResult
-case object MdgRequestSuccessful extends MdgRequestResult
-case class MdgRequestError(e: Throwable) extends MdgRequestResult
-case class MdgRequestFatalError(e: Throwable) extends MdgRequestResult
+sealed trait MdgRequestResult {
+  def error: Option[Throwable]
+}
+case object MdgRequestSuccessful extends MdgRequestResult {
+  override def error = None
+}
+case class MdgRequestError(e: Throwable) extends MdgRequestResult {
+  override def error = Some(e)
+}
+case class MdgRequestFatalError(e: Throwable) extends MdgRequestResult {
+  override def error = Some(e)
+}
 
 class MdgConnector @Inject()(
   httpClient: HttpClient,

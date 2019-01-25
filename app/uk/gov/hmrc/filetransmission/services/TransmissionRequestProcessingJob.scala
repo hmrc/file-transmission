@@ -44,17 +44,10 @@ class TransmissionRequestProcessingJob @Inject()(
     implicit val hc = HeaderCarrier()
     val now = clock.instant
 
-    def permanentlyFailed(envelope: TransmissionRequestEnvelope, error: Throwable): ProcessingFailedDoNotRetry = {
-      val updatedItem = item.withFailedDeliveryAttempt(new FailedDeliveryAttempt(now, error.getMessage))
-
-      Logger.warn(s"Permanently failed to deliver request. Delivery window expiry time: [$timeToGiveUp]. Failed delivery attempts were: [${updatedItem.deliveryAttempts.mkString(",")}].", error)
-
-      ProcessingFailedDoNotRetry(error)
-    }
-
     for (result <- mdgConnector.requestTransmission(item.request)) yield {
       withLoggedContext(item.request) {
-        logResult(item, result)
+
+        logIfDeliveryWindowHasExpired(item, now, timeToGiveUp, result.error)
 
         result match {
           case MdgRequestSuccessful =>
@@ -62,13 +55,13 @@ class TransmissionRequestProcessingJob @Inject()(
             ProcessingSuccessful
           case MdgRequestFatalError(error) =>
             callbackSender.sendFailedCallback(item.request, error)
-            permanentlyFailed(item, error)
+            ProcessingFailedDoNotRetry(error)
           case MdgRequestError(error) => {
             if (nextRetryTime < timeToGiveUp) {
               ProcessingFailed(error)
             } else {
               callbackSender.sendFailedCallback(item.request, error)
-              permanentlyFailed(item, error)
+              ProcessingFailedDoNotRetry(error)
             }
           }
         }
@@ -76,16 +69,22 @@ class TransmissionRequestProcessingJob @Inject()(
     }
   }
 
-  private def logResult(request: TransmissionRequestEnvelope,
-                        result: MdgRequestResult): Unit =
-    result match {
-      case MdgRequestSuccessful =>
-        Logger.debug(s"Request ${request.describe} processed successfully")
-      case MdgRequestFatalError(error) =>
-        Logger.warn(
-          s"Processing request ${request.describe} failed - non recoverable error",
-          error)
-      case MdgRequestError(error) =>
-        Logger.warn(s"Processing request ${request.describe} failed", error)
+  private def logIfDeliveryWindowHasExpired(envelope: TransmissionRequestEnvelope,
+                                            now: java.time.Instant,
+                                            timeToGiveUp: java.time.Instant,
+                                            error: Option[Throwable] = None): Unit = {
+    if (now.isAfter(timeToGiveUp)) {
+
+      val newFailedDeliveryAttempt: Option[FailedDeliveryAttempt] = error.map {
+        ex => new FailedDeliveryAttempt(now, ex.getMessage)
+      }
+
+      val updatedDeliveryAttempts: Seq[FailedDeliveryAttempt] = envelope.deliveryAttempts ++ newFailedDeliveryAttempt
+
+      Logger.warn(
+        s"""Failed to deliver notification within delivery window for file reference: [${envelope.request.file.reference}] before [$timeToGiveUp].
+          | Failed delivery attempts were: [${updatedDeliveryAttempts.mkString(",")}].
+          | """.stripMargin)
     }
+  }
 }
