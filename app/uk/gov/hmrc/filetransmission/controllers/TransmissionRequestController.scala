@@ -22,6 +22,7 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
+import uk.gov.hmrc.filetransmission.services.TransmissionService
 import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
 import uk.gov.hmrc.filetransmission.utils.UserAgentFilter
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -31,6 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class TransmissionRequestController @Inject()(
     workItemService: WorkItemService,
+    transmissionService: TransmissionService,
     requestValidator: RequestValidator,
     override val configuration: ServiceConfiguration)(
     implicit ec: ExecutionContext)
@@ -43,10 +45,10 @@ class TransmissionRequestController @Inject()(
         withJsonBody[TransmissionRequest] { transmissionRequest =>
           requestValidator.validate(transmissionRequest) match {
             case Left(e) => Future.successful(BadRequest(e))
-            case _ =>
-              val envelope =
-                TransmissionRequestEnvelope(transmissionRequest, serviceName)
-              workItemService.enqueue(envelope).map(_ => Accepted)
+            case _       =>
+              transmissionService
+                .transmit(TransmissionRequestEnvelope(transmissionRequest, serviceName))
+                .map { _ => Accepted }
           }
         }
       }

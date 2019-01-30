@@ -85,7 +85,7 @@ class FileTransmissionAcceptanceTests
       verifyMdgReceivedRequestWithBody(consumingServiceJsonRequestBodyToMdgXmlRequestBody(validRequestBody()))
 
       And("consuming service should receive confirmation that the request has been processed successfully")
-      verifyConsumingServiceRetrievesSuccessfulCallback
+      verifyConsumingServiceReceivesSuccessfulCallback
 
     }
 
@@ -93,7 +93,7 @@ class FileTransmissionAcceptanceTests
       Given("we have valid request")
       val request = transmissionRequest(Json.parse(validRequestBody()))
 
-      And("MDG returns HTTP 400 bad requestsb")
+      And("MDG returns HTTP 400 bad request")
       stubMdgToReturnBadRequest()
 
       And("consuming service is up and running")
@@ -105,9 +105,8 @@ class FileTransmissionAcceptanceTests
       Then("the response should that request has been consumed")
       status(response) shouldBe 202
 
-      And(
-        "consuming service should receive notification that the request processing failed")
-      verifyConsumingServiceRetrievesFailureCallback(
+      And("consuming service should receive notification that the request processing failed")
+      verifyConsumingServiceReceivesFailureCallback(
         "POST of 'http://localhost:11111/mdg' returned 400 (Bad Request). Response body ''")
 
       And("MDG was called once and only once")
@@ -133,9 +132,8 @@ class FileTransmissionAcceptanceTests
       And("MDG should receive the request")
       verifyMdgReceivedRequest
 
-      And(
-        "consuming service should receive confirmation that the request has been processed successfully")
-      verifyConsumingServiceRetrievesSuccessfulCallback
+      And("consuming service should receive confirmation that the request has been processed successfully")
+      verifyConsumingServiceReceivesSuccessfulCallback
     }
 
     "when retrying, custom retry window duration should be honored" in {
@@ -159,9 +157,8 @@ class FileTransmissionAcceptanceTests
       And("MDG should receive the request")
       verifyMdgReceivedRequest
 
-      And(
-        "consuming service should receive confirmation that the request processing has failed")
-      verifyConsumingServiceRetrievesFailureCallback(
+      And("consuming service should receive confirmation that the request processing has failed")
+      verifyConsumingServiceReceivesFailureCallback(
         "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''",
         timeout = 8 seconds)
     }
@@ -185,9 +182,8 @@ class FileTransmissionAcceptanceTests
       And("MDG should receive the request")
       verifyMdgReceivedRequest
 
-      And(
-        "consuming service should receive confirmation that the request processing has failed")
-      verifyConsumingServiceRetrievesFailureCallback(
+      And("consuming service should receive confirmation that the request processing has failed")
+      verifyConsumingServiceReceivesFailureCallback(
         "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''")
     }
 
@@ -231,7 +227,7 @@ class FileTransmissionAcceptanceTests
       mdgServer.verify(requestBuilder)
     }
 
-  private def verifyConsumingServiceRetrievesSuccessfulCallback =
+  private def verifyConsumingServiceReceivesSuccessfulCallback =
     eventually(Timeout(scaled(Span(2, Seconds))),
                Interval(scaled(Span(200, Millis)))) {
       consumingServiceServer.verify(
@@ -244,7 +240,7 @@ class FileTransmissionAcceptanceTests
                | }""".stripMargin)))
     }
 
-  private def verifyConsumingServiceRetrievesFailureCallback(message: String,
+  private def verifyConsumingServiceReceivesFailureCallback(message: String,
                                                              timeout: Duration =
                                                                20 seconds) =
     eventually(Timeout(scaled(Span(timeout.toSeconds, Seconds))),
