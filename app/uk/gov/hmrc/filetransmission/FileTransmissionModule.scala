@@ -23,7 +23,7 @@ import play.api.{Configuration, Environment}
 import uk.gov.hmrc.filetransmission.config.{PlayBasedServiceConfiguration, ServiceConfiguration}
 import uk.gov.hmrc.filetransmission.connector.HttpCallbackSender
 import uk.gov.hmrc.filetransmission.services.queue.{MongoBackedWorkItemService, QueueJob, WorkItemProcessingScheduler, WorkItemService}
-import uk.gov.hmrc.filetransmission.services.{CallbackSender, TransmissionRequestProcessingJob}
+import uk.gov.hmrc.filetransmission.services.{CallbackSender, RetryQueueBackedTransmissionService, TransmissionRequestProcessingJob, TransmissionService}
 
 class FileTransmissionModule extends Module {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
@@ -33,6 +33,7 @@ class FileTransmissionModule extends Module {
       bind[QueueJob].to[TransmissionRequestProcessingJob],
       bind[WorkItemProcessingScheduler].toSelf.eagerly(),
       bind[WorkItemService].to[MongoBackedWorkItemService],
+      bind[TransmissionService].to[RetryQueueBackedTransmissionService],
       bind[Clock].toInstance(Clock.systemUTC())
     )
 }
