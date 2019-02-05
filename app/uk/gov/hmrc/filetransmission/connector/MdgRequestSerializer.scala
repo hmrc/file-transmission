@@ -20,9 +20,9 @@ import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 
 class MdgRequestSerializer {
 
-  val printer = new scala.xml.PrettyPrinter(24, 4)
-
   def serialize(request: TransmissionRequest): String = {
+
+    val printer = new scala.xml.PrettyPrinter(24, 4)
 
     val propertiesXml = for (property <- request.properties) yield <mdg:property>
         <mdg:name>{property.name}</mdg:name>
