@@ -29,4 +29,6 @@ class TestHttpClient extends HttpClient with WSHttp {
   override val wsClient                           = AhcWSClient()
   override lazy val configuration: Option[Config] = None
   override val hooks                              = Seq.empty
+
+  override protected def actorSystem: ActorSystem = ActorSystem("test-actor-system")
 }
