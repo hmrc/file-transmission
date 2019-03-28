@@ -44,7 +44,8 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
              "application/xml",
              "checksum",
              1,
-             1024),
+             1024,
+             1553774049),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
         Some(30 seconds)
@@ -69,7 +70,8 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
              "application/xml",
              "checksum",
              1,
-             1024),
+             1024,
+             ),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
         Some(30 seconds)

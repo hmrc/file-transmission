@@ -65,7 +65,8 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       "mimeType" -> "application/pdf",
       "location" -> "http://127.0.0.1/location",
       "checksum" -> "1234",
-      "size" -> 1024
+      "size" -> 1024,
+      "uploadTimeStamp" -> 1553774049
     ),
     "interface" -> Json.obj(
       "name" -> "sampleInterface",

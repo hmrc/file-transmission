@@ -83,7 +83,8 @@ class HttpCallbackSenderSpec
          "application/xml",
          "checksum",
          1,
-         1024),
+         1024,
+         1553774049),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     callbackUrl,
     None
