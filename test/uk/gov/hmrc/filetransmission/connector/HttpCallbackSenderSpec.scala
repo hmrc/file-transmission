@@ -17,26 +17,24 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import java.net.URL
-import java.time.{LocalDateTime, LocalTime}
+import java.time.LocalDateTime
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo, _}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, FunSuite, GivenWhenThen}
+import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.utils.TestHttpClient
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
-import com.github.tomakehurst.wiremock.client.WireMock._
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class HttpCallbackSenderSpec
-    extends UnitSpec
+  extends UnitSpec
     with GivenWhenThen
     with MockitoSugar
     with BeforeAndAfterAll {
@@ -75,13 +73,13 @@ class HttpCallbackSenderSpec
     Batch("A", 10),
     Interface("J", "1.0"),
     File("ref",
-         new URL("http://127.0.0.1:11111/test"),
-         "test.xml",
-         "application/xml",
-         "checksum",
-         1,
-         1024,
-         LocalDateTime.now()),
+      new URL("http://127.0.0.1:11111/test"),
+      "test.xml",
+      "application/xml",
+      "checksum",
+      1,
+      1024,
+      LocalDateTime.now()),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     callbackUrl,
     None
@@ -104,12 +102,13 @@ class HttpCallbackSenderSpec
 
       callbackServer.verify(
         postRequestedFor(urlEqualTo("/listen"))
-          .withRequestBody(equalToJson(s"""
-                                         | {
-                                         |   "fileReference" : "${request.file.reference}",
-                                         |   "batchId" : "${request.batch.id}",
-                                         |   "outcome" : "SUCCESS"
-                                         | }
+          .withRequestBody(equalToJson(
+            s"""
+               | {
+               |   "fileReference" : "${request.file.reference}",
+               |   "batchId" : "${request.batch.id}",
+               |   "outcome" : "SUCCESS"
+               | }
                                        """.stripMargin)))
 
     }
@@ -131,20 +130,21 @@ class HttpCallbackSenderSpec
       val result =
         Await.ready(
           callbackSender.sendFailedCallback(request,
-                                            new Exception("Planned exception")),
+            new Exception("Planned exception")),
           10 seconds)
 
       result.value.get.isSuccess shouldBe true
 
       callbackServer.verify(
         postRequestedFor(urlEqualTo("/listen"))
-          .withRequestBody(equalToJson(s"""
-                                          | {
-                                          |   "fileReference" : "${request.file.reference}",
-                                          |   "batchId" : "${request.batch.id}",
-                                          |   "outcome" : "FAILURE",
-                                          |   "errorDetails" : "Planned exception"
-                                          | }
+          .withRequestBody(equalToJson(
+            s"""
+               | {
+               |   "fileReference" : "${request.file.reference}",
+               |   "batchId" : "${request.batch.id}",
+               |   "outcome" : "FAILURE",
+               |   "errorDetails" : "Planned exception"
+               | }
                                        """.stripMargin)))
     }
 
@@ -155,7 +155,7 @@ class HttpCallbackSenderSpec
       val result =
         Await.ready(
           callbackSender.sendFailedCallback(request,
-                                            new Exception("Planned exception")),
+            new Exception("Planned exception")),
           10 seconds)
 
       result.value.get.isFailure shouldBe true
