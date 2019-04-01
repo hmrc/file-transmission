@@ -17,13 +17,10 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import java.net.URL
+import java.time.{LocalDateTime, LocalTime}
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{
-  aResponse,
-  post,
-  urlEqualTo
-}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
@@ -84,7 +81,7 @@ class HttpCallbackSenderSpec
          "checksum",
          1,
          1024,
-         1553774049),
+         LocalDateTime.now()),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     callbackUrl,
     None

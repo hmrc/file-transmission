@@ -17,6 +17,7 @@
 package uk.gov.hmrc.filetransmission.utils
 
 import java.net.URL
+import java.time.LocalDateTime
 
 import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
@@ -43,7 +44,7 @@ class RequestValidatorSpec
          "checksum",
          1,
          1024,
-         1553774049),
+         LocalDateTime.now),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     httpCallback,
     None
@@ -59,7 +60,7 @@ class RequestValidatorSpec
          "checksum",
          1,
          1024,
-         1553774049),
+         LocalDateTime.now),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("https://127.0.0.1/test"),
     None

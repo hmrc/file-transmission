@@ -17,6 +17,8 @@
 package uk.gov.hmrc.filetransmission.services
 
 import java.net.URL
+import java.sql.Timestamp
+import java.time.{LocalDate, LocalDateTime, LocalTime}
 
 import org.mockito.Mockito
 import org.mockito.Mockito.{verify, verifyNoMoreInteractions, when}
@@ -53,7 +55,7 @@ class RetryQueueBackedTransmissionServiceSpec extends UnitSpec with Matchers wit
       "checksum",
       1,
       1024,
-      1553774049),
+      LocalDateTime.now()),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("http://127.0.0.1/test"),
     Some(30 seconds)

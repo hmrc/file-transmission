@@ -17,7 +17,7 @@
 package uk.gov.hmrc.filetransmission.model
 
 import java.net.URL
-import java.time.Instant
+import java.time.{Instant, LocalDateTime}
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
@@ -63,7 +63,7 @@ case class File(
     checksum: String,
     sequenceNumber: Int,
     size: Int,
-    uploadTimeStamp: Long
+    uploadTimeStamp: LocalDateTime
 )
 
 case class Property(
