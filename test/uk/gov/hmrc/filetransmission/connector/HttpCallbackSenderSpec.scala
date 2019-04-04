@@ -17,7 +17,7 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import java.net.URL
-import java.time.LocalDateTime
+import java.time.Instant
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo, _}
@@ -79,7 +79,7 @@ class HttpCallbackSenderSpec
       "checksum",
       1,
       1024,
-      LocalDateTime.now()),
+      Instant.now),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     callbackUrl,
     None

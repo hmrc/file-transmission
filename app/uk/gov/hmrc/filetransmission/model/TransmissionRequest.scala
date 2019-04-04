@@ -63,7 +63,7 @@ case class File(
     checksum: String,
     sequenceNumber: Int,
     size: Int,
-    uploadTimeStamp: LocalDateTime
+    uploadTimeStamp: Instant
 )
 
 case class Property(

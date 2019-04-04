@@ -18,7 +18,7 @@ package uk.gov.hmrc.filetransmission.connector
 
 import java.net.URL
 import java.sql.Timestamp
-import java.time.{LocalDateTime, LocalTime}
+import java.time.{Instant, LocalDateTime, LocalTime}
 
 import org.scalatest.GivenWhenThen
 import org.xml.sax.SAXParseException
@@ -46,7 +46,7 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
           "checksum",
           1,
           1024,
-          LocalDateTime.now()),
+          Instant.now),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
         Some(30 seconds)
@@ -72,7 +72,7 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
           "checksum",
           1,
           1024,
-          LocalDateTime.now()),
+          Instant.now),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
         Some(30 seconds)

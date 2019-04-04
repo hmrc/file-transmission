@@ -1,6 +1,5 @@
 import java.net.URL
-import java.sql.Timestamp
-import java.time.{LocalDateTime, LocalTime}
+import java.time.Instant
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
@@ -81,7 +80,7 @@ class TransmissionRequestWorkItemRepositoryISpec extends UnitSpec
           "checksum",
           1,
           1024,
-          LocalDateTime.now()),
+          Instant.now),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
         Some(30 seconds)

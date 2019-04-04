@@ -17,10 +17,11 @@
 package uk.gov.hmrc.filetransmission.utils
 
 import java.net.URL
-import java.time.LocalDateTime
+import java.time.Instant
+
+import uk.gov.hmrc.filetransmission.model._
 
 import scala.concurrent.duration._
-import uk.gov.hmrc.filetransmission.model._
 
 object SampleTransmissionRequest {
 
@@ -34,7 +35,7 @@ object SampleTransmissionRequest {
       "checksum",
       1,
       1024,
-      LocalDateTime.now),
+      Instant.now),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("http://127.0.0.1/test"),
     Some(30 seconds)
