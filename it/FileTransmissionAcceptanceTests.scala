@@ -327,7 +327,8 @@ class FileTransmissionAcceptanceTests
       |		"checksum": "asdrfgvbhujk13579",
       |		"location": "https://localhost",
       |		"sequenceNumber": 3,
-      |		"size": 1024
+      |		"size": 1024,
+      |   "uploadTimeStamp": "2001-12-17T09:30:47Z"
       |	},
       |	"interface":{
       |		"name": "interfaceName name",
