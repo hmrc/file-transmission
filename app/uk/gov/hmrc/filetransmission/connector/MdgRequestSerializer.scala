@@ -33,7 +33,7 @@ class MdgRequestSerializer {
       <mdg:BatchFileInterfaceMetadata
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xmlns:mdg="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema"
-      xsi:schemaLocation="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema BatchFileInterfaceMetadata-1.0.7.xsd"
+      xsi:schemaLocation="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema BatchFileInterfaceMetadata-1.0.6.xsd"
       >
         <mdg:sourceSystem>MDTP</mdg:sourceSystem>
         <mdg:sourceSystemType>AWS</mdg:sourceSystemType>
