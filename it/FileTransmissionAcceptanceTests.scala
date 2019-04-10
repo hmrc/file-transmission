@@ -17,8 +17,7 @@ import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.duration._
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, _}
 import scala.xml.PrettyPrinter
 
 class FileTransmissionAcceptanceTests

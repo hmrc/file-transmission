@@ -17,7 +17,7 @@
 package uk.gov.hmrc.filetransmission.services
 
 import java.net.URL
-import java.time.{Clock, Instant, LocalDateTime, LocalTime}
+import java.time.{Clock, Instant}
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{any, eq => meq}
@@ -26,15 +26,15 @@ import org.mockito.{ArgumentCaptor, Mockito}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.{MdgConnector, MdgRequestError, MdgRequestFatalError, MdgRequestSuccessful}
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.queue.{ProcessingFailed, ProcessingFailedDoNotRetry, ProcessingSuccessful}
+import uk.gov.hmrc.play.test.UnitSpec
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 
 class TransmissionRequestProcessingJobSpec

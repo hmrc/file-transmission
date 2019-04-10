@@ -17,8 +17,7 @@
 package uk.gov.hmrc.filetransmission.services
 
 import java.net.URL
-import java.sql.Timestamp
-import java.time.{Instant, LocalDate, LocalDateTime, LocalTime}
+import java.time.Instant
 
 import org.mockito.Mockito
 import org.mockito.Mockito.{verify, verifyNoMoreInteractions, when}

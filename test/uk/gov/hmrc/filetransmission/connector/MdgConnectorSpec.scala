@@ -17,7 +17,7 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import java.net.URL
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
