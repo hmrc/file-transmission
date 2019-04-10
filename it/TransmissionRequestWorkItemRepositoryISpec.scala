@@ -4,9 +4,9 @@ import java.time.Instant
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import org.joda.time.Instant
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
+import org.joda.time.DateTime
 import org.scalatest.concurrent.Eventually
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -15,8 +15,8 @@ import uk.gov.hmrc.filetransmission.services.queue.{MongoBackedWorkItemService, 
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.workitem.WorkItem
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 class TransmissionRequestWorkItemRepositoryISpec extends UnitSpec
   with GuiceOneAppPerSuite
@@ -92,7 +92,7 @@ class TransmissionRequestWorkItemRepositoryISpec extends UnitSpec
       stubMdgToFail()
 
       And("the request is added to the work item queue")
-      val workItem: WorkItem[TransmissionRequestEnvelope] = await(testInstance.pushNew(envelope, Instant.now.toDateTime))
+      val workItem: WorkItem[TransmissionRequestEnvelope] = await(testInstance.pushNew(envelope, new DateTime(Instant.now)))
 
       When("the request is processed twice (both attempts with failed delivery to MDG)")
       await(workItemService.processOne()) shouldBe true

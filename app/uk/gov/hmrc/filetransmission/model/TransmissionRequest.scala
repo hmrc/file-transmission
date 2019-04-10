@@ -17,7 +17,7 @@
 package uk.gov.hmrc.filetransmission.model
 
 import java.net.URL
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}

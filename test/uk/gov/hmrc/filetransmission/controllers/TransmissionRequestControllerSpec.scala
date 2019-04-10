@@ -26,8 +26,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.{RequestValidator, TransmissionRequestEnvelope}
-import uk.gov.hmrc.filetransmission.services.{TransmissionService, TransmissionSuccess}
 import uk.gov.hmrc.filetransmission.services.queue.MongoBackedWorkItemService
+import uk.gov.hmrc.filetransmission.services.{TransmissionService, TransmissionSuccess}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
