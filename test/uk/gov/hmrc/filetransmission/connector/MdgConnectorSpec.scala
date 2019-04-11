@@ -62,7 +62,7 @@ class MdgConnectorSpec
       "checksum",
       1,
       1024,
-      Instant.now),
+      Instant.now.toString),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("http://127.0.0.1/test"),
     None

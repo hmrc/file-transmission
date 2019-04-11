@@ -44,7 +44,7 @@ class RequestValidatorSpec
       "checksum",
       1,
       1024,
-      Instant.now),
+      Instant.now.toString),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     httpCallback,
     None
@@ -60,7 +60,7 @@ class RequestValidatorSpec
       "checksum",
       1,
       1024,
-      Instant.now),
+      Instant.now.toString),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("https://127.0.0.1/test"),
     None

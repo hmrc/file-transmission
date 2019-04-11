@@ -79,7 +79,7 @@ class HttpCallbackSenderSpec
       "checksum",
       1,
       1024,
-      Instant.now),
+      Instant.now.toString),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     callbackUrl,
     None
