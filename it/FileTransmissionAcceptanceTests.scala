@@ -17,8 +17,7 @@ import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.duration._
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, _}
 import scala.xml.PrettyPrinter
 
 class FileTransmissionAcceptanceTests
@@ -327,7 +326,8 @@ class FileTransmissionAcceptanceTests
       |		"checksum": "asdrfgvbhujk13579",
       |		"location": "https://localhost",
       |		"sequenceNumber": 3,
-      |		"size": 1024
+      |		"size": 1024,
+      |   "uploadTimeStamp": "2001-12-17T09:30:47Z"
       |	},
       |	"interface":{
       |		"name": "interfaceName name",
@@ -367,6 +367,7 @@ class FileTransmissionAcceptanceTests
         <mdg:batchID>{request.batch.id}</mdg:batchID>
         <mdg:batchSize>{request.batch.fileCount}</mdg:batchSize>
         <mdg:batchCount>{request.file.sequenceNumber}</mdg:batchCount>
+        <mdg:extractEndDateTime>{request.file.uploadTimeStamp}</mdg:extractEndDateTime>
         <mdg:checksum>{request.file.checksum}</mdg:checksum>
         <mdg:checksumAlgorithm>SHA-256</mdg:checksumAlgorithm>
         <mdg:fileSize>{request.file.size}</mdg:fileSize>

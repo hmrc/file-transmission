@@ -62,7 +62,8 @@ case class File(
     mimeType: String,
     checksum: String,
     sequenceNumber: Int,
-    size: Int
+    size: Int,
+    uploadTimeStamp: String
 )
 
 case class Property(

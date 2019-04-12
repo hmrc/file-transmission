@@ -26,8 +26,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.{RequestValidator, TransmissionRequestEnvelope}
-import uk.gov.hmrc.filetransmission.services.{TransmissionService, TransmissionSuccess}
 import uk.gov.hmrc.filetransmission.services.queue.MongoBackedWorkItemService
+import uk.gov.hmrc.filetransmission.services.{TransmissionService, TransmissionSuccess}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -65,7 +65,8 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       "mimeType" -> "application/pdf",
       "location" -> "http://127.0.0.1/location",
       "checksum" -> "1234",
-      "size" -> 1024
+      "size" -> 1024,
+      "uploadTimeStamp" -> "2001-12-17T09:30:47Z"
     ),
     "interface" -> Json.obj(
       "name" -> "sampleInterface",
