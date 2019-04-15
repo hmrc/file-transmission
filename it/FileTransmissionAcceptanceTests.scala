@@ -36,7 +36,7 @@ class FileTransmissionAcceptanceTests
       "application.router" -> "testOnlyDoNotUseInAppConf.Routes",
       "userAgentFilter.allowedUserAgents" -> "PrepareUploadControllerISpec",
       "auditing.enabled" -> "false",
-      "mdgEndpoint" -> "http://localhost:11111/mdg",
+      "mdg.endpoint" -> "http://localhost:11111/mdg",
       "callbackValidation.allowedProtocols" -> "http",
       "initialBackoffAfterFailure" -> "75 milliseconds",
       "deliveryWindowDuration" -> "15 seconds"
