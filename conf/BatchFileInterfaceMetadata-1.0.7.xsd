@@ -1,108 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- edited with XMLSpy v2017 (http://www.altova.com) by Keith McCully (H M Revenue & Customs) -->
+<!-- edited with XMLSpy v2017 rel. 3 sp1 (x64) (http://www.altova.com) by DST (H M Revenue & Customs) -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" xmlns:mdg="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema" targetNamespace="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema" elementFormDefault="qualified" attributeFormDefault="qualified" vc:minVersion="1.1">
-	<xs:complexType name="propertyType">
-		<xs:annotation>
-			<xs:documentation>Property entry</xs:documentation>
-		</xs:annotation>
-		<xs:sequence>
-			<xs:element name="name" type="xs:string">
-				<xs:annotation>
-					<xs:documentation>Name of the property</xs:documentation>
-				</xs:annotation>
-			</xs:element>
-			<xs:element name="value" type="xs:string">
-				<xs:annotation>
-					<xs:documentation>Value of the property</xs:documentation>
-				</xs:annotation>
-			</xs:element>
-		</xs:sequence>
-	</xs:complexType>
-	<xs:complexType name="memberType">
-		<xs:annotation>
-			<xs:documentation>A manifest/member
-entry must exist for
-every file that
-comprises a zipped file</xs:documentation>
-		</xs:annotation>
-		<xs:sequence>
-			<xs:element name="fileName" type="xs:string">
-				<xs:annotation>
-					<xs:documentation>The file name of the
-zipped up member</xs:documentation>
-				</xs:annotation>
-			</xs:element>
-			<xs:element name="fileSize" type="xs:long" minOccurs="0">
-				<xs:annotation>
-					<xs:documentation>The size of the zipped
-up member file in
-bytes</xs:documentation>
-				</xs:annotation>
-			</xs:element>
-			<xs:element name="checksumAlgorithm">
-				<xs:annotation>
-					<xs:documentation>The name of the
-Algorithm used to
-generate the
-checksum against the
-zipped up member file</xs:documentation>
-				</xs:annotation>
-				<xs:simpleType>
-					<xs:restriction base="mdg:checksumAlgorithmSimpleType">
-						<xs:enumeration value="MD5"/>
-						<xs:enumeration value="SHA-256"/>
-						<xs:enumeration value="SHA-512"/>
-					</xs:restriction>
-				</xs:simpleType>
-			</xs:element>
-			<xs:element name="checksum" type="xs:string">
-				<xs:annotation>
-					<xs:documentation>The checksum
-generated against the
-zipped up member file</xs:documentation>
-				</xs:annotation>
-			</xs:element>
-		</xs:sequence>
-	</xs:complexType>
-	<xs:complexType name="executionType">
-		<xs:annotation>
-			<xs:documentation>Contains information of
-individual virus scans
-that were performed
-on the batch interface
-file</xs:documentation>
-		</xs:annotation>
-		<xs:sequence>
-			<xs:element name="performed" type="xs:dateTime" minOccurs="0"/>
-			<xs:element name="result">
-				<xs:simpleType>
-					<xs:restriction base="xs:string">
-						<xs:enumeration value="Passed"/>
-						<xs:enumeration value="Failed"/>
-					</xs:restriction>
-				</xs:simpleType>
-			</xs:element>
-			<xs:element name="tool" type="xs:string"/>
-			<xs:element name="report" type="xs:string"/>
-		</xs:sequence>
-	</xs:complexType>
 	<xs:element name="BatchFileInterfaceMetadata">
 		<xs:annotation>
 			<xs:documentation>The Metadata File contains information about the Batch Interface File that is used to control the transport and management of the file by the MDG File Transport Framework.</xs:documentation>
 		</xs:annotation>
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element name="sourceSystem" type="mdg:sourceSystemSimpleType">
+				<xs:element name="sourceSystem" type="xs:string">
 					<xs:annotation>
 						<xs:documentation>The name of the Application or System that originally generated the Batch Interface Data File.</xs:documentation>
 					</xs:annotation>
 				</xs:element>
-				<xs:element name="sourceSystemType" type="mdg:sourceSystemTypeSimpleType" minOccurs="0">
+				<xs:element name="sourceSystemType" type="xs:string" minOccurs="0">
 					<xs:annotation>
 						<xs:documentation>The technology category on which the Source System was hosted when the Batch Interface Data File was generated</xs:documentation>
 					</xs:annotation>
 				</xs:element>
-				<xs:element name="sourceSystemOS" type="mdg:sourceSystemOSSimpleType" minOccurs="0">
+				<xs:element name="sourceSystemOS" type="xs:string" minOccurs="0">
 					<xs:annotation>
 						<xs:documentation>The Operating system on which the Source System was hosted when the Batch Interface Data File was generated</xs:documentation>
 					</xs:annotation>
@@ -184,7 +99,7 @@ The date is also exposed as part of the Batch File Name.</xs:documentation>
 						<xs:documentation>The checksum generated against the Batch Interface File using the specified Checksum Algorithm</xs:documentation>
 					</xs:annotation>
 				</xs:element>
-				<xs:element name="checksumAlgorithm" type="mdg:checksumAlgorithmSimpleType">
+				<xs:element name="checksumAlgorithm" type="mdg:checksumAlgorithmType">
 					<xs:annotation>
 						<xs:documentation>The name of the Algorithm used to generate the checksum agains the batch interface data file</xs:documentation>
 					</xs:annotation>
@@ -215,7 +130,7 @@ The date is also exposed as part of the Batch File Name.</xs:documentation>
 						<xs:documentation>The checksum generated against the compressed Batch Interface File using the specified Compressed Checksum Algorithm</xs:documentation>
 					</xs:annotation>
 				</xs:element>
-				<xs:element name="compressedChecksumAlgorithm" type="mdg:checksumAlgorithmSimpleType" minOccurs="0">
+				<xs:element name="compressedChecksumAlgorithm" type="mdg:checksumAlgorithmType" minOccurs="0">
 					<xs:annotation>
 						<xs:documentation>The name of the Algorithm used to generate the checksum against the compressed Batch Interface data file</xs:documentation>
 					</xs:annotation>
@@ -254,7 +169,7 @@ batch interface file has
 been encrypted</xs:documentation>
 					</xs:annotation>
 				</xs:element>
-				<xs:element name="encryptedChecksum" minOccurs="0">
+				<xs:element name="encryptedChecksum" type="mdg:checksumAlgorithmType" minOccurs="0">
 					<xs:annotation>
 						<xs:documentation>The checksum
 generated against the
@@ -263,13 +178,6 @@ Interface File using the
 specified Compressed
 Checksum Algorithm</xs:documentation>
 					</xs:annotation>
-					<xs:simpleType>
-						<xs:restriction base="mdg:checksumAlgorithmSimpleType">
-							<xs:enumeration value="MD5"/>
-							<xs:enumeration value="SHA-256"/>
-							<xs:enumeration value="SHA-512"/>
-						</xs:restriction>
-					</xs:simpleType>
 				</xs:element>
 				<xs:element name="encryptedSignature" type="xs:string" minOccurs="0">
 					<xs:annotation>
@@ -278,7 +186,7 @@ using the file
 originator's private key</xs:documentation>
 					</xs:annotation>
 				</xs:element>
-				<xs:element name="properties" minOccurs="0">
+				<xs:element name="properties" type="mdg:propertiesType" minOccurs="0">
 					<xs:annotation>
 						<xs:documentation>File content or
 metadata exposed in
@@ -286,19 +194,10 @@ the metadata file for
 routing, searching or
 processing purposes</xs:documentation>
 					</xs:annotation>
-					<xs:complexType>
-						<xs:sequence>
-							<xs:element name="property" type="mdg:propertyType" maxOccurs="unbounded">
-								<xs:annotation>
-									<xs:documentation>Property entry</xs:documentation>
-								</xs:annotation>
-							</xs:element>
-						</xs:sequence>
-					</xs:complexType>
 				</xs:element>
 				<xs:element name="sourceLocation" type="xs:string">
 					<xs:annotation>
-						<xs:documentation>The tempory url pointing to the S3 Bucket To Folder</xs:documentation>
+						<xs:documentation>The llocation of the Content File in the Source System</xs:documentation>
 					</xs:annotation>
 				</xs:element>
 				<xs:element name="sourceFileName" type="xs:string">
@@ -318,104 +217,38 @@ Interface Data File. E.g
 PDF, GIF, DOC</xs:documentation>
 					</xs:annotation>
 				</xs:element>
-				<xs:element name="virusScan" minOccurs="0">
+				<xs:element name="virusScan" type="mdg:virusScanType" minOccurs="0">
 					<xs:annotation>
 						<xs:documentation>Contains information of
 an virus checking that
 was performed on the
 batch interface file</xs:documentation>
 					</xs:annotation>
-					<xs:complexType>
-						<xs:sequence>
-							<xs:element name="execution" type="mdg:executionType" maxOccurs="unbounded"/>
-						</xs:sequence>
-					</xs:complexType>
 				</xs:element>
-				<xs:element name="destinations" minOccurs="0">
-					<xs:complexType>
-						<xs:sequence>
-							<xs:element name="destination" type="mdg:destinationType" maxOccurs="unbounded"/>
-						</xs:sequence>
-					</xs:complexType>
-				</xs:element>
+				<xs:element name="destinations" type="mdg:destinationsType" minOccurs="0"/>
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
-	<xs:simpleType name="sourceSystemSimpleType">
-		<xs:restriction base="xs:string">
-			<xs:enumeration value="LicenseStore"/>
-			<xs:enumeration value="ICMS_SPIRE"/>
-			<xs:enumeration value="RPA"/>
-			<xs:enumeration value="DMS"/>
-			<xs:enumeration value="EDH"/>
-			<xs:enumeration value="MDTP"/>
-			<xs:enumeration value="RDS"/>
-			<xs:enumeration value="Risk"/>
-			<xs:enumeration value="Tariff"/>
-			<xs:enumeration value="Trader"/>
-			<xs:enumeration value="DG-TAXUD"/>
-			<xs:enumeration value="DIT"/>
-			<xs:enumeration value="InventoryLinking"/>
-			<xs:enumeration value="LISCA"/>
-			<xs:enumeration value="CHIEF"/>
-			<xs:enumeration value="SPIRE"/>
-			<xs:enumeration value="ICMS"/>
-			<xs:enumeration value="ILMS"/>
-			<xs:enumeration value="BOLT"/>
-		</xs:restriction>
-	</xs:simpleType>
-	<xs:simpleType name="sourceSystemTypeSimpleType">
-		<xs:restriction base="xs:string">
-			<xs:enumeration value="AWS"/>
-			<xs:enumeration value="FAST-P"/>
-		</xs:restriction>
-	</xs:simpleType>
-	<xs:simpleType name="sourceSystemOSSimpleType">
-		<xs:restriction base="xs:string">
-			<xs:enumeration value="RedHat_7.3"/>
-		</xs:restriction>
-	</xs:simpleType>
-	<xs:simpleType name="checksumAlgorithmSimpleType">
-		<xs:restriction base="xs:string">
-			<xs:enumeration value="MD5"/>
-			<xs:enumeration value="SHA-256"/>
-			<xs:enumeration value="SHA-512"/>
-		</xs:restriction>
-	</xs:simpleType>
 	<xs:simpleType name="compressionAlgorithmSimpleType">
 		<xs:restriction base="xs:string">
 			<xs:enumeration value="GZIP"/>
 			<xs:enumeration value="ZIP"/>
 		</xs:restriction>
 	</xs:simpleType>
-	<xs:simpleType name="destinationSystemSimpleType">
+	<xs:simpleType name="checksumAlgorithmType">
 		<xs:restriction base="xs:string">
-			<xs:enumeration value="LicenseStore"/>
-			<xs:enumeration value="CDS"/>
-			<xs:enumeration value="ICMS_SPIRE"/>
-			<xs:enumeration value="RPA"/>
-			<xs:enumeration value="DMS"/>
-			<xs:enumeration value="EDH"/>
-			<xs:enumeration value="MDTP"/>
-			<xs:enumeration value="RDS"/>
-			<xs:enumeration value="Risk"/>
-			<xs:enumeration value="Tariff"/>
-			<xs:enumeration value="Trader"/>
-			<xs:enumeration value="DG-TAXUD"/>
-			<xs:enumeration value="DIT"/>
-			<xs:enumeration value="InventoryLinking"/>
-			<xs:enumeration value="DDS"/>
-			<xs:enumeration value="CorporateAuditWarehouse"/>
-			<xs:enumeration value="LISCA"/>
 			<xs:enumeration value="CHIEF"/>
-			<xs:enumeration value="SPIRE"/>
-			<xs:enumeration value="ICMS"/>
-			<xs:enumeration value="ILMS"/>
+			<xs:enumeration value="MD2"/>
+			<xs:enumeration value="MD5"/>
+			<xs:enumeration value="SHA-1"/>
+			<xs:enumeration value="SHA-256"/>
+			<xs:enumeration value="SHA-384"/>
+			<xs:enumeration value="SHA-512"/>
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:complexType name="destinationType">
 		<xs:sequence>
-			<xs:element name="destinationSystem" type="mdg:destinationSystemSimpleType" minOccurs="0">
+			<xs:element name="destinationSystem" type="xs:string" minOccurs="0">
 				<xs:annotation>
 					<xs:documentation>The Final Destination for the transferred file.</xs:documentation>
 				</xs:annotation>
@@ -436,6 +269,103 @@ batch interface file</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="destinationFileMimeType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="virusScanType">
+		<xs:sequence>
+			<xs:element name="execution" type="mdg:executionType" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="destinationsType">
+		<xs:sequence>
+			<xs:element name="destination" type="mdg:destinationType" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="propertiesType">
+		<xs:sequence>
+			<xs:element name="property" type="mdg:propertyType" maxOccurs="unbounded">
+				<xs:annotation>
+					<xs:documentation>Property entry</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="propertyType">
+		<xs:annotation>
+			<xs:documentation>Property entry</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="name" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Name of the property</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="value" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Value of the property</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="memberType">
+		<xs:annotation>
+			<xs:documentation>A manifest/member
+entry must exist for
+every file that
+comprises a zipped file</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="fileName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>The file name of the
+zipped up member</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="fileSize" type="xs:long" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>The size of the zipped
+up member file in
+bytes</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="checksumAlgorithm" type="mdg:checksumAlgorithmType">
+				<xs:annotation>
+					<xs:documentation>The name of the
+Algorithm used to
+generate the
+checksum against the
+zipped up member file</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="checksum" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>The checksum
+generated against the
+zipped up member file</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="executionType">
+		<xs:annotation>
+			<xs:documentation>Contains information of
+individual virus scans
+that were performed
+on the batch interface
+file</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="performed" type="xs:dateTime" minOccurs="0"/>
+			<xs:element name="result">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="Passed"/>
+						<xs:enumeration value="Failed"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="tool" type="xs:string"/>
+			<xs:element name="report" type="xs:string"/>
 		</xs:sequence>
 	</xs:complexType>
 </xs:schema>

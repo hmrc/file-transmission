@@ -16,13 +16,16 @@
 
 package uk.gov.hmrc.filetransmission.connector
 
+import java.util.UUID
+
 import javax.inject.Inject
-import play.api.http.{ContentTypes, HeaderNames}
+import play.api.http.{ContentTypes, HeaderNames, MimeTypes}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import cats.implicits._
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,19 +43,19 @@ case class MdgRequestFatalError(e: Throwable) extends MdgRequestResult {
 }
 
 class MdgConnector @Inject()(
-  httpClient: HttpClient,
-  serviceConfiguration: ServiceConfiguration,
-  requestSerializer: MdgRequestSerializer)(implicit ec: ExecutionContext) {
+    httpClient: HttpClient,
+    serviceConfiguration: ServiceConfiguration,
+    requestSerializer: MdgRequestSerializer)(implicit ec: ExecutionContext) {
 
-  def requestTransmission(request: TransmissionRequest)(implicit hc: HeaderCarrier): Future[MdgRequestResult] = {
+  def requestTransmission(request: TransmissionRequest)(
+      implicit hc: HeaderCarrier): Future[MdgRequestResult] = {
 
     val serializedRequest: String = requestSerializer.serialize(request)
     for (result <- httpClient
-                    .POSTString[HttpResponse](
-                      serviceConfiguration.mdgEndpoint,
-                      serializedRequest,
-                      Seq((HeaderNames.CONTENT_TYPE, ContentTypes.XML)))
-                    .attempt) yield {
+           .POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,
+                                     serializedRequest,
+                                     buildHeaders())
+           .attempt) yield {
       result match {
         case Right(_)                     => MdgRequestSuccessful
         case Left(e: BadRequestException) => MdgRequestFatalError(e)
@@ -61,5 +64,16 @@ class MdgConnector @Inject()(
     }
 
   }
+
+  private def generateCorrelationId() = UUID.randomUUID().toString
+
+  private def buildHeaders() =
+    Seq(
+      (HeaderNames.CONTENT_TYPE, ContentTypes.XML),
+      (HeaderNames.ACCEPT, MimeTypes.XML),
+      (HeaderNames.AUTHORIZATION,
+       s"Bearer ${serviceConfiguration.mdgAuthorizationToken}"),
+      "X-Correlation-ID" -> generateCorrelationId
+    )
 
 }

@@ -1,7 +1,10 @@
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
+import com.github.tomakehurst.wiremock.matching.{
+  AnythingPattern,
+  RequestPatternBuilder
+}
 import com.github.tomakehurst.wiremock.stubbing.Scenario
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
@@ -81,9 +84,11 @@ class FileTransmissionAcceptanceTests
       status(response) shouldBe 202
 
       And("MDG should receive the request, with expected xml body")
-      verifyMdgReceivedRequestWithBody(consumingServiceJsonRequestBodyToMdgXmlRequestBody(validRequestBody()))
+      verifyMdgReceivedRequestWithBody(
+        consumingServiceJsonRequestBodyToMdgXmlRequestBody(validRequestBody()))
 
-      And("consuming service should receive confirmation that the request has been processed successfully")
+      And(
+        "consuming service should receive confirmation that the request has been processed successfully")
       verifyConsumingServiceReceivesSuccessfulCallback
 
     }
@@ -104,7 +109,8 @@ class FileTransmissionAcceptanceTests
       Then("the response should that request has been consumed")
       status(response) shouldBe 202
 
-      And("consuming service should receive notification that the request processing failed")
+      And(
+        "consuming service should receive notification that the request processing failed")
       verifyConsumingServiceReceivesFailureCallback(
         "POST of 'http://localhost:11111/mdg' returned 400 (Bad Request). Response body ''")
 
@@ -131,7 +137,8 @@ class FileTransmissionAcceptanceTests
       And("MDG should receive the request")
       verifyMdgReceivedRequest
 
-      And("consuming service should receive confirmation that the request has been processed successfully")
+      And(
+        "consuming service should receive confirmation that the request has been processed successfully")
       verifyConsumingServiceReceivesSuccessfulCallback
     }
 
@@ -156,7 +163,8 @@ class FileTransmissionAcceptanceTests
       And("MDG should receive the request")
       verifyMdgReceivedRequest
 
-      And("consuming service should receive confirmation that the request processing has failed")
+      And(
+        "consuming service should receive confirmation that the request processing has failed")
       verifyConsumingServiceReceivesFailureCallback(
         "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''",
         timeout = 8 seconds)
@@ -181,7 +189,8 @@ class FileTransmissionAcceptanceTests
       And("MDG should receive the request")
       verifyMdgReceivedRequest
 
-      And("consuming service should receive confirmation that the request processing has failed")
+      And(
+        "consuming service should receive confirmation that the request processing has failed")
       verifyConsumingServiceReceivesFailureCallback(
         "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''")
     }
@@ -200,7 +209,8 @@ class FileTransmissionAcceptanceTests
     }
 
     "clear the request queue" in {
-      val request = FakeRequest(GET, "/file-transmission/test-only/requests/clear")
+      val request =
+        FakeRequest(GET, "/file-transmission/test-only/requests/clear")
 
       val response = route(app, request).get
 
@@ -209,20 +219,30 @@ class FileTransmissionAcceptanceTests
     }
   }
 
+  private def withRequiredMdgHeaders(input: RequestPatternBuilder) =
+    input
+      .withHeader("X-Correlation-ID", new AnythingPattern())
+      .withHeader("Authorization", equalTo("Bearer mockToken"))
+      .withHeader("Content-Type",
+                  equalToIgnoreCase("application/xml; charset=UTF-8"))
+      .withHeader("Accept", equalTo("application/xml"))
+
   private def verifyMdgReceivedRequest =
     buildAndVerifyMdgReceivedRequest {
-      postRequestedFor(urlEqualTo("/mdg"))
+      withRequiredMdgHeaders(postRequestedFor(urlEqualTo("/mdg")))
     }
 
   private def verifyMdgReceivedRequestWithBody(expectedXmlRequest: String) =
     buildAndVerifyMdgReceivedRequest {
-      postRequestedFor(urlEqualTo("/mdg"))
-        .withRequestBody(equalToXml(expectedXmlRequest))
+      withRequiredMdgHeaders(
+        postRequestedFor(urlEqualTo("/mdg"))
+          .withRequestBody(equalToXml(expectedXmlRequest)))
     }
 
-  private def buildAndVerifyMdgReceivedRequest(requestBuilder: => RequestPatternBuilder) =
+  private def buildAndVerifyMdgReceivedRequest(
+      requestBuilder: => RequestPatternBuilder) =
     eventually(Timeout(scaled(Span(2, Seconds))),
-      Interval(scaled(Span(200, Millis)))) {
+               Interval(scaled(Span(200, Millis)))) {
       mdgServer.verify(requestBuilder)
     }
 
@@ -240,8 +260,8 @@ class FileTransmissionAcceptanceTests
     }
 
   private def verifyConsumingServiceReceivesFailureCallback(message: String,
-                                                             timeout: Duration =
-                                                               20 seconds) =
+                                                            timeout: Duration =
+                                                              20 seconds) =
     eventually(Timeout(scaled(Span(timeout.toSeconds, Seconds))),
                Interval(scaled(Span(200, Millis)))) {
       consumingServiceServer.verify(
@@ -254,6 +274,10 @@ class FileTransmissionAcceptanceTests
                                           |    "errorDetails": "$message"
                                           | }""".stripMargin)))
     }
+
+  private def verifyMdgCall: Unit = {
+    mdgServer.verify(postRequestedFor(urlEqualTo("/mdg")))
+  }
 
   private def stubMdgToReturnValidResponse(): Unit =
     mdgServer.stubFor(
@@ -346,10 +370,12 @@ class FileTransmissionAcceptanceTests
       |}
     """.stripMargin
 
-  private def consumingServiceJsonRequestBodyToMdgXmlRequestBody(body: String): String = {
+  private def consumingServiceJsonRequestBodyToMdgXmlRequestBody(
+      body: String): String = {
     val request: TransmissionRequest = Json.parse(body).as[TransmissionRequest]
 
-    val propertiesXml = for (property <- request.properties) yield <mdg:property>
+    val propertiesXml = for (property <- request.properties)
+      yield <mdg:property>
       <mdg:name>{property.name}</mdg:name>
       <mdg:value>{property.value}</mdg:value>
     </mdg:property>
@@ -357,7 +383,7 @@ class FileTransmissionAcceptanceTests
       <mdg:BatchFileInterfaceMetadata
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xmlns:mdg="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema"
-      xsi:schemaLocation="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema BatchFileInterfaceMetadata-1.0.6.xsd">
+      xsi:schemaLocation="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema BatchFileInterfaceMetadata-1.0.7.xsd">
         <mdg:sourceSystem>MDTP</mdg:sourceSystem>
         <mdg:sourceSystemType>AWS</mdg:sourceSystemType>
         <mdg:interfaceName>{request.interface.name}</mdg:interfaceName>

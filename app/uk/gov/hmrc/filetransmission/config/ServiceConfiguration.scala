@@ -25,6 +25,7 @@ import play.api.Configuration
 import scala.concurrent.duration.Duration
 
 trait ServiceConfiguration {
+
   def allowedUserAgents: Seq[String]
 
   def queuePollingInterval: Duration
@@ -40,6 +41,8 @@ trait ServiceConfiguration {
   def allowedCallbackProtocols: Seq[String]
 
   def mdgEndpoint: String
+
+  def mdgAuthorizationToken: String
 }
 
 class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
@@ -64,7 +67,7 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
       .getOrElse(Nil)
 
   override def mdgEndpoint: String =
-    getRequired[String](configuration.getString(_, None), "mdgEndpoint")
+    getRequired[String](configuration.getString(_, None), "mdg.endpoint")
   override def queuePollingInterval: Duration =
     getDuration("queuePollingInterval")
   override def queueRetryAfterFailureInterval: Duration =
@@ -83,4 +86,8 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
   private def getRequired[T](function: String => Option[T], key: String) =
     function(key).getOrElse(
       throw new IllegalStateException(s"Configuration key not found: $key"))
+
+  override def mdgAuthorizationToken: String =
+    getRequired[String](configuration.getString(_, None),
+                        "mdg.authorizationToken")
 }
