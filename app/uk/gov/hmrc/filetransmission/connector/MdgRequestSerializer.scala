@@ -24,7 +24,8 @@ class MdgRequestSerializer {
 
     val printer = new scala.xml.PrettyPrinter(24, 4)
 
-    val propertiesXml = for (property <- request.properties) yield <mdg:property>
+    val propertiesXml = for (property <- request.properties)
+      yield <mdg:property>
         <mdg:name>{property.name}</mdg:name>
         <mdg:value>{property.value}</mdg:value>
       </mdg:property>
@@ -33,7 +34,7 @@ class MdgRequestSerializer {
       <mdg:BatchFileInterfaceMetadata
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xmlns:mdg="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema"
-      xsi:schemaLocation="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema BatchFileInterfaceMetadata-1.0.6.xsd"
+      xsi:schemaLocation="http://www.hmrc.gsi.gov.uk/mdg/batchFileInterfaceMetadataSchema BatchFileInterfaceMetadata-1.0.7.xsd"
       >
         <mdg:sourceSystem>MDTP</mdg:sourceSystem>
         <mdg:sourceSystemType>AWS</mdg:sourceSystemType>
