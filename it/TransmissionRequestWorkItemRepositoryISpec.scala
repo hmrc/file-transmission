@@ -1,6 +1,6 @@
 import java.net.URL
 
-import org.joda.time.Instant
+import org.joda.time.{Instant => JodaInstant}
 import java.time.Instant
 
 import com.github.tomakehurst.wiremock.WireMockServer
@@ -93,7 +93,7 @@ class TransmissionRequestWorkItemRepositoryISpec extends UnitSpec
       stubMdgToFail()
 
       And("the request is added to the work item queue")
-      val workItem: WorkItem[TransmissionRequestEnvelope] = await(testInstance.pushNew(envelope, Instant.now.toDateTime)
+      val workItem: WorkItem[TransmissionRequestEnvelope] = await(testInstance.pushNew(envelope, JodaInstant.now.toDateTime()))
 
       When("the request is processed twice (both attempts with failed delivery to MDG)")
       await(workItemService.processOne()) shouldBe true
