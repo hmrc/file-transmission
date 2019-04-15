@@ -25,9 +25,15 @@ import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.model.{RequestValidator, TransmissionRequestEnvelope}
+import uk.gov.hmrc.filetransmission.model.{
+  RequestValidator,
+  TransmissionRequestEnvelope
+}
 import uk.gov.hmrc.filetransmission.services.queue.MongoBackedWorkItemService
-import uk.gov.hmrc.filetransmission.services.{TransmissionService, TransmissionSuccess}
+import uk.gov.hmrc.filetransmission.services.{
+  TransmissionService,
+  TransmissionSuccess
+}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -52,6 +58,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
     override def initialBackoffAfterFailure: Duration = ???
     override def allowedCallbackProtocols: Seq[String] = Seq("http", "https")
     override def defaultDeliveryWindowDuration: Duration = ???
+    override def mdgAuthorizationToken: String = ???
   }
 
   val transmissionQueue = mock[MongoBackedWorkItemService]
@@ -124,7 +131,8 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
         .thenReturn(Future.successful((): Unit))
 
       Mockito
-        .when(transmissionService.transmit(any[TransmissionRequestEnvelope])(any[HeaderCarrier]))
+        .when(transmissionService.transmit(any[TransmissionRequestEnvelope])(
+          any[HeaderCarrier]))
         .thenReturn(Future.successful(TransmissionSuccess))
 
       val requestValidator: RequestValidator = mock[RequestValidator]

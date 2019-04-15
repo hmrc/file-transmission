@@ -36,7 +36,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class MdgConnectorSpec
-  extends UnitSpec
+    extends UnitSpec
     with GivenWhenThen
     with MockitoSugar
     with BeforeAndAfterAll {
@@ -50,19 +50,21 @@ class MdgConnectorSpec
     override def initialBackoffAfterFailure: Duration = ???
     override def allowedCallbackProtocols: Seq[String] = ???
     override def defaultDeliveryWindowDuration: Duration = ???
+
+    override def mdgAuthorizationToken: String = "AuthToken"
   }
 
   val request: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
     File("ref",
-      new URL("http://127.0.0.1/test"),
-      "test.xml",
-      "application/xml",
-      "checksum",
-      1,
-      1024,
-      Instant.now.toString),
+         new URL("http://127.0.0.1/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024,
+         Instant.now.toString),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("http://127.0.0.1/test"),
     None
@@ -114,7 +116,7 @@ class MdgConnectorSpec
         new MdgConnector(httpClient, serviceConfiguration, serializer)
 
       Await.result(connector.requestTransmission(request)(HeaderCarrier()),
-        10 seconds) shouldBe MdgRequestSuccessful
+                   10 seconds) shouldBe MdgRequestSuccessful
     }
 
     "return failed response when call to MDG failed" in {
@@ -127,7 +129,7 @@ class MdgConnectorSpec
         new MdgConnector(httpClient, serviceConfiguration, serializer)
 
       Await.result(connector.requestTransmission(request)(HeaderCarrier()),
-        10 seconds) shouldBe a[MdgRequestError]
+                   10 seconds) shouldBe a[MdgRequestError]
     }
 
     "return fatally failed response when call to MDG failed and returned HTTP 400 bad request" in {
@@ -141,9 +143,9 @@ class MdgConnectorSpec
 
       val result =
         Await.ready(connector.requestTransmission(request)(HeaderCarrier()),
-          10 seconds)
+                    10 seconds)
       Await.result(connector.requestTransmission(request)(HeaderCarrier()),
-        10 seconds) shouldBe a[MdgRequestFatalError]
+                   10 seconds) shouldBe a[MdgRequestFatalError]
     }
   }
 

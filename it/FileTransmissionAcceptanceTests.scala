@@ -1,7 +1,10 @@
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
+import com.github.tomakehurst.wiremock.matching.{
+  AnythingPattern,
+  RequestPatternBuilder
+}
 import com.github.tomakehurst.wiremock.stubbing.Scenario
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
@@ -216,15 +219,24 @@ class FileTransmissionAcceptanceTests
     }
   }
 
+  private def withRequiredMdgHeaders(input: RequestPatternBuilder) =
+    input
+      .withHeader("X-Correlation-ID", new AnythingPattern())
+      .withHeader("Authorization", equalTo("Bearer mockToken"))
+      .withHeader("Content-Type",
+                  equalToIgnoreCase("application/xml; charset=UTF-8"))
+      .withHeader("Accept", equalTo("application/xml"))
+
   private def verifyMdgReceivedRequest =
     buildAndVerifyMdgReceivedRequest {
-      postRequestedFor(urlEqualTo("/mdg"))
+      withRequiredMdgHeaders(postRequestedFor(urlEqualTo("/mdg")))
     }
 
   private def verifyMdgReceivedRequestWithBody(expectedXmlRequest: String) =
     buildAndVerifyMdgReceivedRequest {
-      postRequestedFor(urlEqualTo("/mdg"))
-        .withRequestBody(equalToXml(expectedXmlRequest))
+      withRequiredMdgHeaders(
+        postRequestedFor(urlEqualTo("/mdg"))
+          .withRequestBody(equalToXml(expectedXmlRequest)))
     }
 
   private def buildAndVerifyMdgReceivedRequest(
@@ -262,6 +274,10 @@ class FileTransmissionAcceptanceTests
                                           |    "errorDetails": "$message"
                                           | }""".stripMargin)))
     }
+
+  private def verifyMdgCall: Unit = {
+    mdgServer.verify(postRequestedFor(urlEqualTo("/mdg")))
+  }
 
   private def stubMdgToReturnValidResponse(): Unit =
     mdgServer.stubFor(

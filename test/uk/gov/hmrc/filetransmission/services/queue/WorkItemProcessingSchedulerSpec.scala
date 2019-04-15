@@ -93,6 +93,8 @@ class WorkItemProcessingSchedulerSpec
       override def initialBackoffAfterFailure: Duration = ???
       override def allowedCallbackProtocols: Seq[String] = ???
       override def defaultDeliveryWindowDuration: Duration = ???
+
+      override def mdgAuthorizationToken: String = ???
     }
 
     "process all requests waiting in the queue" in {
