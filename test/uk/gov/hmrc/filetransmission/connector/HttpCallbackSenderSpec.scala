@@ -20,7 +20,12 @@ import java.net.URL
 import java.time.Instant
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo, _}
+import com.github.tomakehurst.wiremock.client.WireMock.{
+  aResponse,
+  post,
+  urlEqualTo,
+  _
+}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
@@ -34,7 +39,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class HttpCallbackSenderSpec
-  extends UnitSpec
+    extends UnitSpec
     with GivenWhenThen
     with MockitoSugar
     with BeforeAndAfterAll {
@@ -73,13 +78,13 @@ class HttpCallbackSenderSpec
     Batch("A", 10),
     Interface("J", "1.0"),
     File("ref",
-      new URL("http://127.0.0.1:11111/test"),
-      "test.xml",
-      "application/xml",
-      "checksum",
-      1,
-      1024,
-      Instant.now.toString),
+         new URL("http://127.0.0.1:11111/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024,
+         Instant.now),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     callbackUrl,
     None
@@ -102,8 +107,7 @@ class HttpCallbackSenderSpec
 
       callbackServer.verify(
         postRequestedFor(urlEqualTo("/listen"))
-          .withRequestBody(equalToJson(
-            s"""
+          .withRequestBody(equalToJson(s"""
                | {
                |   "fileReference" : "${request.file.reference}",
                |   "batchId" : "${request.batch.id}",
@@ -130,15 +134,14 @@ class HttpCallbackSenderSpec
       val result =
         Await.ready(
           callbackSender.sendFailedCallback(request,
-            new Exception("Planned exception")),
+                                            new Exception("Planned exception")),
           10 seconds)
 
       result.value.get.isSuccess shouldBe true
 
       callbackServer.verify(
         postRequestedFor(urlEqualTo("/listen"))
-          .withRequestBody(equalToJson(
-            s"""
+          .withRequestBody(equalToJson(s"""
                | {
                |   "fileReference" : "${request.file.reference}",
                |   "batchId" : "${request.batch.id}",
@@ -155,7 +158,7 @@ class HttpCallbackSenderSpec
       val result =
         Await.ready(
           callbackSender.sendFailedCallback(request,
-            new Exception("Planned exception")),
+                                            new Exception("Planned exception")),
           10 seconds)
 
       result.value.get.isFailure shouldBe true

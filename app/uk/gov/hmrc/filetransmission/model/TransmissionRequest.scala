@@ -26,8 +26,7 @@ import uk.gov.hmrc.filetransmission.utils.LoggingOps.ContextExtractor
 
 import scala.concurrent.duration._
 
-case class FailedDeliveryAttempt(time: Instant,
-                                 failureReason: String)
+case class FailedDeliveryAttempt(time: Instant, failureReason: String)
 
 case class TransmissionRequest(batch: Batch,
                                interface: Interface,
@@ -41,7 +40,8 @@ case class TransmissionRequestEnvelope(
     serviceName: String,
     deliveryAttempts: Seq[FailedDeliveryAttempt] = Seq.empty
 ) {
-  def withFailedDeliveryAttempt(da: FailedDeliveryAttempt): TransmissionRequestEnvelope = {
+  def withFailedDeliveryAttempt(
+      da: FailedDeliveryAttempt): TransmissionRequestEnvelope = {
     this.copy(
       deliveryAttempts = deliveryAttempts :+ da
     )
@@ -63,7 +63,7 @@ case class File(
     checksum: String,
     sequenceNumber: Int,
     size: Int,
-    uploadTimeStamp: String
+    uploadTimeStamp: Instant
 )
 
 case class Property(
@@ -98,7 +98,7 @@ object TransmissionRequest {
   implicit val requestExtractor = new ContextExtractor[TransmissionRequest] {
     override def extract(request: TransmissionRequest): Map[String, String] =
       Map(
-        "file-reference"  -> request.file.reference,
+        "file-reference" -> request.file.reference,
         "batch-reference" -> request.batch.id
       )
   }

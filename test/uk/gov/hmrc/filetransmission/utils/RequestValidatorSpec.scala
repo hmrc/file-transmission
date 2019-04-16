@@ -27,7 +27,7 @@ import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.play.test.UnitSpec
 
 class RequestValidatorSpec
-  extends UnitSpec
+    extends UnitSpec
     with Matchers
     with GivenWhenThen
     with MockitoSugar {
@@ -38,13 +38,13 @@ class RequestValidatorSpec
     Batch("A", 10),
     Interface("J", "1.0"),
     File("ref",
-      new URL("http://127.0.0.1/test"),
-      "test.xml",
-      "application/xml",
-      "checksum",
-      1,
-      1024,
-      Instant.now.toString),
+         new URL("http://127.0.0.1/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024,
+         Instant.now),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     httpCallback,
     None
@@ -54,13 +54,13 @@ class RequestValidatorSpec
     Batch("A", 10),
     Interface("J", "1.0"),
     File("ref",
-      new URL("http://127.0.0.1/test"),
-      "test.xml",
-      "application/xml",
-      "checksum",
-      1,
-      1024,
-      Instant.now.toString),
+         new URL("http://127.0.0.1/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024,
+         Instant.now),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("https://127.0.0.1/test"),
     None

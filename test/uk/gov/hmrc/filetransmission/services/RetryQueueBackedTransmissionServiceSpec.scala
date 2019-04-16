@@ -23,7 +23,12 @@ import org.mockito.Mockito
 import org.mockito.Mockito.{verify, verifyNoMoreInteractions, when}
 import org.scalatest.mockito.MockitoSugar.mock
 import org.scalatest.{BeforeAndAfterEach, Matchers}
-import uk.gov.hmrc.filetransmission.connector.{MdgConnector, MdgRequestError, MdgRequestFatalError, MdgRequestSuccessful}
+import uk.gov.hmrc.filetransmission.connector.{
+  MdgConnector,
+  MdgRequestError,
+  MdgRequestFatalError,
+  MdgRequestSuccessful
+}
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
 import uk.gov.hmrc.http.HeaderCarrier
@@ -33,36 +38,42 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class RetryQueueBackedTransmissionServiceSpec extends UnitSpec with Matchers with BeforeAndAfterEach {
+class RetryQueueBackedTransmissionServiceSpec
+    extends UnitSpec
+    with Matchers
+    with BeforeAndAfterEach {
 
-  implicit val hc     = HeaderCarrier()
+  implicit val hc = HeaderCarrier()
 
-  val mdgConnector    = mock[MdgConnector]
+  val mdgConnector = mock[MdgConnector]
   val workItemService = mock[WorkItemService]
-  val callbackSender  = mock[CallbackSender]
+  val callbackSender = mock[CallbackSender]
 
-  val testInstance    = new RetryQueueBackedTransmissionService(mdgConnector, workItemService, callbackSender)
+  val testInstance = new RetryQueueBackedTransmissionService(mdgConnector,
+                                                             workItemService,
+                                                             callbackSender)
 
   val request = TransmissionRequest(
     Batch("BatchA", 1),
     Interface("InterfaceA", "1.0"),
-    File(
-      "file-reference",
-      new URL("http://127.0.0.1/test"),
-      "test.xml",
-      "application/xml",
-      "checksum",
-      1,
-      1024,
-      Instant.now.toString),
+    File("file-reference",
+         new URL("http://127.0.0.1/test"),
+         "test.xml",
+         "application/xml",
+         "checksum",
+         1,
+         1024,
+         Instant.now),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     new URL("http://127.0.0.1/test"),
     Some(30 seconds)
   )
-  val requestEnvelope = TransmissionRequestEnvelope(request, "RetryQueueBackedTransmissionServiceSpec")
+  val requestEnvelope = TransmissionRequestEnvelope(
+    request,
+    "RetryQueueBackedTransmissionServiceSpec")
 
-  override protected def beforeEach() = Mockito.reset(mdgConnector, workItemService, callbackSender)
-
+  override protected def beforeEach() =
+    Mockito.reset(mdgConnector, workItemService, callbackSender)
 
   "RetryQueueBackedTransmissionService" should {
 
@@ -81,7 +92,8 @@ class RetryQueueBackedTransmissionServiceSpec extends UnitSpec with Matchers wit
       when(workItemService.enqueue(requestEnvelope))
         .thenReturn(Future.successful((): Unit))
       when(mdgConnector.requestTransmission(request))
-        .thenReturn(Future.successful(MdgRequestError(new RuntimeException("BOOM!"))))
+        .thenReturn(
+          Future.successful(MdgRequestError(new RuntimeException("BOOM!"))))
 
       await(testInstance.transmit(requestEnvelope)) shouldBe TransmissionPending
 
