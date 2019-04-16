@@ -17,7 +17,7 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import java.net.URL
-import java.time.Instant
+import java.time.{Instant, ZoneOffset}
 
 import org.scalatest.GivenWhenThen
 import org.xml.sax.SAXParseException
@@ -45,7 +45,34 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
              "checksum",
              1,
              1024,
-             Instant.now.toString),
+             Instant.now),
+        Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
+        new URL("http://127.0.0.1/test"),
+        Some(30 seconds)
+      )
+
+      val serializedRequest: String = serializer.serialize(request)
+
+      val validationResult = validateSchema(serializedRequest)
+
+      withClue(validationResult) {
+        validationResult.isSuccess shouldBe true
+      }
+    }
+
+    "produces requests that are compliant with MDG XSD schema - hanlding the case when timestamp has a timezone" in {
+
+      val request = TransmissionRequest(
+        Batch("A", 10),
+        Interface("J", "1.0"),
+        File("ref",
+             new URL("http://127.0.0.1/test"),
+             "test.xml",
+             "application/xml",
+             "checksum",
+             1,
+             1024,
+             Instant.now),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
         Some(30 seconds)
@@ -71,7 +98,7 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
              "checksum",
              1,
              1024,
-             Instant.now.toString),
+             Instant.now),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
         Some(30 seconds)
@@ -92,7 +119,7 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
            |    <mdg:batchID>${request.batch.id}</mdg:batchID>
            |    <mdg:batchSize>${request.batch.fileCount}</mdg:batchSize>
            |    <mdg:batchCount>${request.file.sequenceNumber}</mdg:batchCount>
-           |    <mdg:extractEndDateTime>${request.file.uploadTimeStamp}</mdg:extractEndDateTime>
+           |    <mdg:extractEndDateTime>${request.file.uploadTimeStamp.toString}</mdg:extractEndDateTime>
            |    <mdg:checksum>${request.file.checksum}</mdg:checksum>
            |    <mdg:checksumAlgorithm>SHA-256</mdg:checksumAlgorithm>
            |    <mdg:fileSize>${request.file.size}</mdg:fileSize>

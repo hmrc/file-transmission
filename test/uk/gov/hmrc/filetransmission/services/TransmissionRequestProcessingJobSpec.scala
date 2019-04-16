@@ -27,15 +27,23 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{GivenWhenThen, Matchers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.connector.{MdgConnector, MdgRequestError, MdgRequestFatalError, MdgRequestSuccessful}
+import uk.gov.hmrc.filetransmission.connector.{
+  MdgConnector,
+  MdgRequestError,
+  MdgRequestFatalError,
+  MdgRequestSuccessful
+}
 import uk.gov.hmrc.filetransmission.model._
-import uk.gov.hmrc.filetransmission.services.queue.{ProcessingFailed, ProcessingFailedDoNotRetry, ProcessingSuccessful}
+import uk.gov.hmrc.filetransmission.services.queue.{
+  ProcessingFailed,
+  ProcessingFailedDoNotRetry,
+  ProcessingSuccessful
+}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-
 
 class TransmissionRequestProcessingJobSpec
     extends UnitSpec
@@ -58,13 +66,15 @@ class TransmissionRequestProcessingJobSpec
            "checksum",
            1,
            1024,
-           Instant.now.toString),
+           Instant.now),
       Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
       new URL("http://127.0.0.1/test"),
       Some(30 seconds)
     )
 
-    val envelope = TransmissionRequestEnvelope(request, "TransmissionRequestProcessingJobSpec")
+    val envelope =
+      TransmissionRequestEnvelope(request,
+                                  "TransmissionRequestProcessingJobSpec")
 
     "immediately return success, call MDG and send successful callback to consuming service afterwards" in {
 
@@ -88,10 +98,11 @@ class TransmissionRequestProcessingJobSpec
 
       When("request made to transmission service")
       val result =
-        Await.result(transmissionService.process(
-          envelope,
-          DateTime.now().plusSeconds(5), DateTime.now().minusSeconds(5)),
-                     10 seconds)
+        Await.result(
+          transmissionService.process(envelope,
+                                      DateTime.now().plusSeconds(5),
+                                      DateTime.now().minusSeconds(5)),
+          10 seconds)
 
       Then("immediate successful response is returned")
       result shouldBe ProcessingSuccessful
@@ -131,11 +142,10 @@ class TransmissionRequestProcessingJobSpec
 
       When("request made to transmission service")
       val result =
-        Await.result(
-          transmissionService.process(
-            envelope,
-            DateTime.now(), DateTime.now().plusSeconds(5)),
-          10 seconds)
+        Await.result(transmissionService.process(envelope,
+                                                 DateTime.now(),
+                                                 DateTime.now().plusSeconds(5)),
+                     10 seconds)
 
       Then("response saying that processing failed should be returned")
       result shouldBe a[ProcessingFailed]
@@ -173,11 +183,10 @@ class TransmissionRequestProcessingJobSpec
 
       When("request made to transmission service")
       val result =
-        Await.result(
-          transmissionService.process(
-            envelope,
-            DateTime.now(), DateTime.now().plusSeconds(5)),
-          10 seconds)
+        Await.result(transmissionService.process(envelope,
+                                                 DateTime.now(),
+                                                 DateTime.now().plusSeconds(5)),
+                     10 seconds)
 
       Then("response saying that processing failed should be returned")
       result shouldBe a[ProcessingFailedDoNotRetry]
@@ -222,11 +231,10 @@ class TransmissionRequestProcessingJobSpec
 
       When("request made to transmission service")
       val result =
-        Await.result(
-          transmissionService.process(
-            envelope,
-            DateTime.now().plusSeconds(5), DateTime.now()),
-          10 seconds)
+        Await.result(transmissionService.process(envelope,
+                                                 DateTime.now().plusSeconds(5),
+                                                 DateTime.now()),
+                     10 seconds)
 
       Then(
         "response saying that processing failed and no more retry attemts are required, should be returned")
