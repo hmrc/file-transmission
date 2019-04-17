@@ -77,7 +77,7 @@ The body of a request for transmission of a file in a batch would typically comp
   - `checksum` - SHA256 checksum of the file in hexadecimal format
    - `location` - URL where file is hosted. This URL should be accessible by MDG, e.g. verify networking configuration and use external domain names. URLs provided by `upscan` will already meet this requirement.
   - `sequenceNumber` - relative number of the file within the batch **[the first file in the batch should have sequenceNumber '1']**
-  - `uploadTimeStamp` - the time the file was uploaded in ISO format
+  - `uploadTimestamp` - the time the file was uploaded in ISO format
 - Journey information
   - `interfaceName` - type of interface for MDG to use, specifying what process should be invoked on the file batch
   - `interfaceVersion` - the specific version of the named interface to use
