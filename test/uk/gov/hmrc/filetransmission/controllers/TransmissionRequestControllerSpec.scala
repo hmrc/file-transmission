@@ -73,7 +73,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       "location" -> "http://127.0.0.1/location",
       "checksum" -> "1234",
       "size" -> 1024,
-      "uploadTimeStamp" -> "2001-12-17T09:30:47Z"
+      "uploadTimestamp" -> "2001-12-17T09:30:47Z"
     ),
     "interface" -> Json.obj(
       "name" -> "sampleInterface",

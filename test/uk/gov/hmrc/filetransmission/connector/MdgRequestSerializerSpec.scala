@@ -119,7 +119,7 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
            |    <mdg:batchID>${request.batch.id}</mdg:batchID>
            |    <mdg:batchSize>${request.batch.fileCount}</mdg:batchSize>
            |    <mdg:batchCount>${request.file.sequenceNumber}</mdg:batchCount>
-           |    <mdg:extractEndDateTime>${request.file.uploadTimeStamp.toString}</mdg:extractEndDateTime>
+           |    <mdg:extractEndDateTime>${request.file.uploadTimestamp.toString}</mdg:extractEndDateTime>
            |    <mdg:checksum>${request.file.checksum}</mdg:checksum>
            |    <mdg:checksumAlgorithm>SHA-256</mdg:checksumAlgorithm>
            |    <mdg:fileSize>${request.file.size}</mdg:fileSize>
