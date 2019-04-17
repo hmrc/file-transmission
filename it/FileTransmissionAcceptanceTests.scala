@@ -351,7 +351,7 @@ class FileTransmissionAcceptanceTests
       |		"location": "https://localhost",
       |		"sequenceNumber": 3,
       |		"size": 1024,
-      |   "uploadTimeStamp": "2001-12-17T09:30:47Z"
+      |   "uploadTimestamp": "2001-12-17T09:30:47Z"
       |	},
       |	"interface":{
       |		"name": "interfaceName name",
@@ -393,7 +393,7 @@ class FileTransmissionAcceptanceTests
         <mdg:batchID>{request.batch.id}</mdg:batchID>
         <mdg:batchSize>{request.batch.fileCount}</mdg:batchSize>
         <mdg:batchCount>{request.file.sequenceNumber}</mdg:batchCount>
-        <mdg:extractEndDateTime>{request.file.uploadTimeStamp}</mdg:extractEndDateTime>
+        <mdg:extractEndDateTime>{request.file.uploadTimestamp}</mdg:extractEndDateTime>
         <mdg:checksum>{request.file.checksum}</mdg:checksum>
         <mdg:checksumAlgorithm>SHA-256</mdg:checksumAlgorithm>
         <mdg:fileSize>{request.file.size}</mdg:fileSize>
