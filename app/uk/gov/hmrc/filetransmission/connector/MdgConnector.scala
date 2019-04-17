@@ -55,10 +55,10 @@ class MdgConnector @Inject()(
     val correlationId = generateCorrelationId()
     val headers = buildHeaders(correlationId)
 
-    if (Logger.isDebugEnabled) {
+    if (Logger.isInfoEnabled) {
       val safeHeaders =
         headers.filterNot(_._1 == Http.HeaderNames.AUTHORIZATION)
-      Logger.debug(
+      Logger.info(
         s"Sent request to MDG [${serviceConfiguration.mdgEndpoint}] with body [$serializedRequest], headers [$safeHeaders]")
     }
 

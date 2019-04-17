@@ -92,7 +92,7 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
         Batch("A", 10),
         Interface("interface1", "1.0"),
         File("ref",
-             new URL("http://127.0.0.1/test"),
+             new URL("http://127.0.0.1/test?a=b&c=d"),
              "test.xml",
              "application/xml",
              "checksum",
@@ -135,7 +135,9 @@ class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
            |            <mdg:value>${request.properties(1).value}</mdg:value>
            |        </mdg:property>
            |    </mdg:properties>
-           |    <mdg:sourceLocation>${request.file.location}</mdg:sourceLocation>
+           |    
+           |    <mdg:sourceLocation>${xml.Utility.escape(
+             request.file.location.toString)}</mdg:sourceLocation>
            |    <mdg:sourceFileName>${request.file.name}</mdg:sourceFileName>
            |    <mdg:sourceFileMimeType>${request.file.mimeType}</mdg:sourceFileMimeType>
            |    <mdg:destinations>
