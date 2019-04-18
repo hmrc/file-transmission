@@ -22,7 +22,7 @@ class MdgRequestSerializer {
 
   def serialize(request: TransmissionRequest): String = {
 
-    val printer = new scala.xml.PrettyPrinter(24, 4)
+    val printer = new scala.xml.PrettyPrinter(132, 4)
 
     val propertiesXml = for (property <- request.properties)
       yield <mdg:property>
