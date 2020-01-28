@@ -251,7 +251,6 @@ In addition to returning the `403` error, `file-transmission` will log details o
 [[Back to the top]](#top)
 
 #### Slack <a name="appendix__links__slack"></a>
-* [#team-plat-services](https://hmrcdigital.slack.com/messages/C705QD804/)
 * [#event-upscan](https://hmrcdigital.slack.com/messages/C8XPL559N)
 
 [[Back to the top]](#top)
