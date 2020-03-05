@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,18 +18,17 @@ package uk.gov.hmrc.filetransmission.utils
 
 import akka.util.Timeout
 import org.mockito.Mockito
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{GivenWhenThen, Matchers}
-import play.api.mvc.Results._
+import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.mvc.Result
+import play.api.mvc.Results._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class UserAgentFilterSpec extends UnitSpec with Matchers with GivenWhenThen with MockitoSugar {
+class UserAgentFilterSpec extends WordSpec with Matchers with GivenWhenThen with MockitoSugar {
 
   class UserAgentFilterImpl(override val configuration: ServiceConfiguration) extends UserAgentFilter
 
@@ -50,7 +49,7 @@ class UserAgentFilterSpec extends UnitSpec with Matchers with GivenWhenThen with
       val result = filter.onlyAllowedServices(block)(FakeRequest().withHeaders(("User-Agent", "VALID-AGENT")))
 
       Then("the request should be passed through the filter")
-      status(result)                  shouldBe 200
+      Helpers.status(result)                  shouldBe 200
       Helpers.contentAsString(result) shouldBe "This is a successful result done by VALID-AGENT"
     }
 
@@ -64,7 +63,7 @@ class UserAgentFilterSpec extends UnitSpec with Matchers with GivenWhenThen with
       val result = filter.onlyAllowedServices(block)(FakeRequest())
 
       Then("the filter should reject as forbidden")
-      status(result) shouldBe 403
+      Helpers.status(result) shouldBe 403
       Helpers.contentAsString(result) shouldBe "This service is not allowed to use file-transmission. " +
         "If you need to use this service, please contact Platform Services team."
     }

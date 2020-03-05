@@ -4,30 +4,24 @@ import org.joda.time.{Instant => JodaInstant}
 import java.time.Instant
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{
-  aResponse,
-  post,
-  urlEqualTo
-}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen, Matchers, WordSpec}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.filetransmission.model._
-import uk.gov.hmrc.filetransmission.services.queue.{
-  MongoBackedWorkItemService,
-  TransmissionRequestWorkItemRepository
-}
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.filetransmission.services.queue.{MongoBackedWorkItemService, TransmissionRequestWorkItemRepository}
 import uk.gov.hmrc.workitem.WorkItem
 
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class TransmissionRequestWorkItemRepositoryISpec
-    extends UnitSpec
+    extends WordSpec
+    with Matchers
     with GuiceOneAppPerSuite
     with GivenWhenThen
     with BeforeAndAfterAll
@@ -41,7 +35,8 @@ class TransmissionRequestWorkItemRepositoryISpec
       "callbackValidation.allowedProtocols" -> "http",
       "initialBackoffAfterFailure" -> "1 milliseconds",
       "queuePollingInterval" -> "1 day",
-      "deliveryWindowDuration" -> "15 seconds"
+      "deliveryWindowDuration" -> "15 seconds",
+      "metrics.jvm" -> "false"
     )
     .build()
 
@@ -71,6 +66,8 @@ class TransmissionRequestWorkItemRepositoryISpec
     consumingServiceServer.stop()
     super.afterAll()
   }
+
+  def await[A](future: Future[A]): A = Await.result(future, 5.seconds)
 
   "TransmissionRequestEnvelopeWorkItemRepository" should {
     "persist FailedDeliveryAttempt collection within the TransmissionRequestEnvelope work item" in {

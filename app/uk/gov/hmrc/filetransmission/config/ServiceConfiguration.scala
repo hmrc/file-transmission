@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
 
   override def allowedCallbackProtocols: Seq[String] =
     configuration
-      .getString("callbackValidation.allowedProtocols")
+      .getOptional[String]("callbackValidation.allowedProtocols")
       .map {
         _.split(",").toSeq
           .filter(isNotBlank)
@@ -59,7 +59,7 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
 
   override def allowedUserAgents: Seq[String] =
     configuration
-      .getString("userAgentFilter.allowedUserAgents")
+      .getOptional[String]("userAgentFilter.allowedUserAgents")
       .map {
         _.split(",").toSeq
           .filter(isNotBlank)
@@ -67,7 +67,7 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
       .getOrElse(Nil)
 
   override def mdgEndpoint: String =
-    getRequired[String](configuration.getString(_, None), "mdg.endpoint")
+    getRequired[String](configuration.getOptional[String](_), "mdg.endpoint")
   override def queuePollingInterval: Duration =
     getDuration("queuePollingInterval")
   override def queueRetryAfterFailureInterval: Duration =
@@ -80,14 +80,13 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
     getDuration("deliveryWindowDuration")
 
   private def getDuration(key: String) =
-    Duration(getRequired[Long](configuration.getMilliseconds, key),
-             TimeUnit.MILLISECONDS)
+    getRequired(configuration.getOptional[Duration](_), key)
 
   private def getRequired[T](function: String => Option[T], key: String) =
     function(key).getOrElse(
       throw new IllegalStateException(s"Configuration key not found: $key"))
 
   override def mdgAuthorizationToken: String =
-    getRequired[String](configuration.getString(_, None),
+    getRequired[String](configuration.getOptional[String](_),
                         "mdg.authorizationToken")
 }

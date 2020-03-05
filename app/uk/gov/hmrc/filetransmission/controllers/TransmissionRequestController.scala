@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.TransmissionService
 import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
 import uk.gov.hmrc.filetransmission.utils.UserAgentFilter
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,9 +34,10 @@ class TransmissionRequestController @Inject()(
     workItemService: WorkItemService,
     transmissionService: TransmissionService,
     requestValidator: RequestValidator,
-    override val configuration: ServiceConfiguration)(
-    implicit ec: ExecutionContext)
-    extends BaseController
+    override val configuration: ServiceConfiguration,
+    cc: ControllerComponents)(
+  implicit ec: ExecutionContext)
+  extends BackendController(cc)
     with UserAgentFilter {
 
   def requestTransmission() = Action.async(parse.json) {

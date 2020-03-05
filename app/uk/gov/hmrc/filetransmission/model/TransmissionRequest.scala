@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ object TransmissionRequest {
   implicit val batchReads: Format[Batch] = Json.format[Batch]
 
   val timeInSecondsFormat: Format[FiniteDuration] =
-    implicitly[Format[Int]].inmap(_ seconds, _.toSeconds.toInt)
+    implicitly[Format[Int]].inmap(_.seconds, _.toSeconds.toInt)
 
   implicit val transmissionRequestReads: Format[TransmissionRequest] = (
     (JsPath \ "batch").format[Batch] and

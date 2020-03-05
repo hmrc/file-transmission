@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,13 +44,13 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
       .POST[SuccessfulCallback, HttpResponse](request.callbackUrl.toString, callback)
       .map { response =>
         withLoggedContext(request) {
-          Logger.info(s"Response from: [${request.callbackUrl}], to delivery successful callback: [${callback}], was: [${response.status}].")
+          Logger.info(s"""Response from: [${request.callbackUrl}], to delivery successful callback: [$callback], was: [${response.status}].""")
         }
       } recoverWith {
       case t: Throwable =>
         withLoggedContext(request) {
-          Logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}], for request: [${request}].", t)
-          Future.failed(t).map(_ => ())
+          Logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}], for request: [$request].", t)
+          Future.failed(t)
         }
     }
   }
@@ -67,13 +67,13 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
       .POST[FailureCallback, HttpResponse](request.callbackUrl.toString, callback)
       .map { response =>
         withLoggedContext(request) {
-          Logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [${callback}], was: [${response.status}].")
+          Logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [$callback], was: [${response.status}].")
         }
       } recoverWith  {
       case t: Throwable =>
         withLoggedContext(request) {
-          Logger.error(s"Failed to send delivery failure callback to: [${request.callbackUrl}], for request: [${request}].", t)
-          Future.failed(t).map(_ => ())
+          Logger.error(s"""Failed to send delivery failure callback to: [${request.callbackUrl}], for request: [$request].""", t)
+          Future.failed(t)
         }
     }
   }

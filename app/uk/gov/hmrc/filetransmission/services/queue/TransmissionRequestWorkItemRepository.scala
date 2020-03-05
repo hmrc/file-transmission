@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package uk.gov.hmrc.filetransmission.services.queue
 
 import java.time.Clock
 
+import com.typesafe.config.Config
 import javax.inject.Inject
 import org.joda.time.{DateTime, Duration}
 import play.api.libs.functional.syntax.{unlift, _}
@@ -37,12 +38,13 @@ import scala.concurrent.{ExecutionContext, Future}
 class TransmissionRequestWorkItemRepository @Inject()(
     mongoComponent: ReactiveMongoComponent,
     configuration: ServiceConfiguration,
-    clock: Clock)(implicit ec: ExecutionContext)
+    clock: Clock,
+    config: Config)(implicit ec: ExecutionContext)
     extends WorkItemRepository[TransmissionRequestEnvelope, BSONObjectID](
       collectionName = "transmission-request",
       mongo = mongoComponent.mongoConnector.db,
-      itemFormat =
-        WorkItemFormat.workItemMongoFormat[TransmissionRequestEnvelope]
+      itemFormat = WorkItemFormat.workItemMongoFormat[TransmissionRequestEnvelope],
+      config = config
     ) {
 
   override def now: DateTime = clock.nowAsJoda
@@ -72,7 +74,7 @@ class TransmissionRequestWorkItemRepository @Inject()(
 
     val updater  = Json.obj("$set" -> Json.obj("body.deliveryAttempts" -> body.deliveryAttempts))
 
-    collection.update(selector, updater).map(_.n > 0)
+    collection.update(ordered = false).one(selector, updater).map(_.n > 0)
   }
 }
 

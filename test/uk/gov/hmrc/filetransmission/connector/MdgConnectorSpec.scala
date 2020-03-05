@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,22 +23,22 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import org.mockito.Mockito
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
+import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpec}
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.utils.TestHttpClient
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class MdgConnectorSpec
-    extends UnitSpec
+    extends WordSpec
     with GivenWhenThen
     with MockitoSugar
+    with Matchers
     with BeforeAndAfterAll {
 
   val serviceConfiguration = new ServiceConfiguration {

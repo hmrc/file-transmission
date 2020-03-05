@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,16 +19,17 @@ package uk.gov.hmrc.filetransmission.utils
 import java.net.URL
 
 import scala.util.Try
-import play.api.data.validation.ValidationError
 import play.api.libs.json._
 
 object HttpUrlFormat extends Format[URL] {
 
   override def reads(json: JsValue): JsResult[URL] = json match {
     case JsString(s) => {
-      parseUrl(s).map(JsSuccess(_)).getOrElse(JsError(Seq(JsPath() -> Seq(ValidationError("error.expected.url")))))
+      parseUrl(s).map(JsSuccess(_)).getOrElse(
+        JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.url"))))
+      )
     }
-    case _ => JsError(Seq(JsPath() -> Seq(ValidationError("error.expected.url"))))
+    case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.url"))))
   }
 
   private def parseUrl(s: String): Option[URL] = Try(new URL(s)).toOption
