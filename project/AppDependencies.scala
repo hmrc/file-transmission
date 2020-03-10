@@ -13,7 +13,7 @@ object AppDependencies {
     "org.scala-lang.modules" %% "scala-xml" % "1.1.0",
     "uk.gov.hmrc" %% "simple-reactivemongo" % "7.23.0-play-26",
     "org.typelevel" %% "cats-core" % "1.0.1",
-    "uk.gov.hmrc" %% "work-item-repo" % "6.10.0-play-26"
+    "uk.gov.hmrc" %% "work-item-repo" % "7.0.0-play-26"
   )
 
   def test(scope: String = "test,it") = Seq(

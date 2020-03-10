@@ -7,7 +7,7 @@ val appName = "file-transmission"
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory)
-  .settings(scalaVersion := "2.11.12")
+  .settings(scalaVersion := "2.12.10")
   .settings(PlayKeys.playDefaultPort := 9575)
   .settings(majorVersion := 1)
   .settings(
