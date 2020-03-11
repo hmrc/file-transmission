@@ -16,3 +16,4 @@ addSbtPlugin("uk.gov.hmrc" % "sbt-artifactory" % "1.2.0")
 
 addSbtPlugin("uk.gov.hmrc" % "sbt-distributables" % "2.0.0")
 
+addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0")
