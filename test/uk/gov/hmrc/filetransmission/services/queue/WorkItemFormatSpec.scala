@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 import org.joda.time.DateTime
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{Format, Json}
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.workitem
 import uk.gov.hmrc.workitem.WorkItem
 
-class WorkItemFormatSpec extends UnitSpec {
+class WorkItemFormatSpec extends WordSpec with Matchers  {
 
   case class SampleObject(value: String)
 
@@ -31,8 +31,9 @@ class WorkItemFormatSpec extends UnitSpec {
   "WorkItemFormat" should {
     "be able to serialize and then deserialize work items" in {
 
+      val id = BSONObjectID.generate()
       val workItem = WorkItem(
-        BSONObjectID("123412341234123412341234"),
+        id,
         DateTime.parse("2018-08-15T07:58:10+00:00"),
         DateTime.parse("2018-08-15T07:58:15+00:00"),
         DateTime.parse("2018-08-15T07:58:10+00:00"),

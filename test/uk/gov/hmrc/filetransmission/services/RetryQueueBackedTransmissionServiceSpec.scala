@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,27 +21,24 @@ import java.time.Instant
 
 import org.mockito.Mockito
 import org.mockito.Mockito.{verify, verifyNoMoreInteractions, when}
-import org.scalatest.mockito.MockitoSugar.mock
-import org.scalatest.{BeforeAndAfterEach, Matchers}
-import uk.gov.hmrc.filetransmission.connector.{
-  MdgConnector,
-  MdgRequestError,
-  MdgRequestFatalError,
-  MdgRequestSuccessful
-}
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatestplus.mockito.MockitoSugar
+import uk.gov.hmrc.filetransmission.connector.{MdgConnector, MdgRequestError, MdgRequestFatalError, MdgRequestSuccessful}
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 class RetryQueueBackedTransmissionServiceSpec
-    extends UnitSpec
+    extends WordSpec
     with Matchers
+    with MockitoSugar
     with BeforeAndAfterEach {
+
+  implicit val defaultTimeout: FiniteDuration = 5 seconds
 
   implicit val hc = HeaderCarrier()
 
@@ -81,7 +78,7 @@ class RetryQueueBackedTransmissionServiceSpec
       when(mdgConnector.requestTransmission(request))
         .thenReturn(Future.successful(MdgRequestSuccessful))
 
-      await(testInstance.transmit(requestEnvelope)) shouldBe TransmissionSuccess
+      Await.result(testInstance.transmit(requestEnvelope), defaultTimeout) shouldBe TransmissionSuccess
 
       verify(mdgConnector).requestTransmission(request)
       verify(callbackSender).sendSuccessfulCallback(request)
@@ -95,7 +92,7 @@ class RetryQueueBackedTransmissionServiceSpec
         .thenReturn(
           Future.successful(MdgRequestError(new RuntimeException("BOOM!"))))
 
-      await(testInstance.transmit(requestEnvelope)) shouldBe TransmissionPending
+      Await.result(testInstance.transmit(requestEnvelope), defaultTimeout) shouldBe TransmissionPending
 
       verify(mdgConnector).requestTransmission(request)
       verify(workItemService).enqueue(requestEnvelope)
@@ -108,7 +105,7 @@ class RetryQueueBackedTransmissionServiceSpec
       when(mdgConnector.requestTransmission(request))
         .thenReturn(Future.successful(MdgRequestFatalError(error)))
 
-      await(testInstance.transmit(requestEnvelope)) shouldBe TransmissionFailure
+      Await.result(testInstance.transmit(requestEnvelope), defaultTimeout) shouldBe TransmissionFailure
 
       verify(mdgConnector).requestTransmission(request)
       verify(callbackSender).sendFailedCallback(request, error)

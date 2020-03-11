@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,16 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import java.net.URL
-import java.time.{Instant, ZoneOffset}
+import java.time.Instant
 
-import org.scalatest.GivenWhenThen
+import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
 import org.xml.sax.SAXParseException
 import uk.gov.hmrc.filetransmission.model._
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.duration._
 import scala.util.Try
 
-class MdgRequestSerializerSpec extends UnitSpec with GivenWhenThen {
+class MdgRequestSerializerSpec extends WordSpec with Matchers with GivenWhenThen {
 
   "MdgRequestSerializer" should {
 

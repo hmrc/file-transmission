@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,9 @@ import org.joda.time.DateTime
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterEach, GivenWhenThen, Matchers}
+import org.scalatest.{BeforeAndAfterEach, GivenWhenThen, Matchers, WordSpec}
+import org.scalatestplus.mockito.MockitoSugar
 import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.workitem
 import uk.gov.hmrc.workitem._
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
@@ -37,7 +36,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 class MongoBackedWorkItemServiceSpec
-    extends UnitSpec
+    extends WordSpec
     with Matchers
     with GivenWhenThen
     with MockitoSugar
@@ -300,7 +299,7 @@ class MongoBackedWorkItemServiceSpec
         creationTime: DateTime = DateTime.now(),
         retrySoFar: Int = 0): WorkItem[TransmissionRequestEnvelope] =
       WorkItem(
-        BSONObjectID("123412341234123412341234"),
+        BSONObjectID.generate(),
         creationTime,
         DateTime.now(),
         DateTime.now(),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,10 @@ package uk.gov.hmrc.filetransmission.utils
 
 import java.net.URL
 
-import org.scalatest.Matchers
+import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
 
-class HttpUrlFormatSpec extends UnitSpec with Matchers {
+class HttpUrlFormatSpec extends WordSpec with Matchers {
 
   "reads should properly read string url" in {
     HttpUrlFormat.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(new URL("https://127.0.0.1"))

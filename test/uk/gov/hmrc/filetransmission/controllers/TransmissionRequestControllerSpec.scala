@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,34 +20,29 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
-import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.model.{
-  RequestValidator,
-  TransmissionRequestEnvelope
-}
+import uk.gov.hmrc.filetransmission.model.{RequestValidator, TransmissionRequestEnvelope}
 import uk.gov.hmrc.filetransmission.services.queue.MongoBackedWorkItemService
-import uk.gov.hmrc.filetransmission.services.{
-  TransmissionService,
-  TransmissionSuccess
-}
+import uk.gov.hmrc.filetransmission.services.{TransmissionService, TransmissionSuccess}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import play.api.test.Helpers._
 
-class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
+class TransmissionRequestControllerSpec extends WordSpec with Matchers with MockitoSugar {
 
   implicit val actorSystem = ActorSystem()
 
   implicit val materializer = ActorMaterializer()
 
-  implicit val timeout: akka.util.Timeout = 10.seconds
+  //implicit val timeout: akka.util.Timeout = 10.seconds
 
   val serviceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = Seq("VALID-AGENT")
@@ -141,7 +136,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,
                                                          requestValidator,
-                                                         serviceConfiguration)
+                                                         serviceConfiguration, stubControllerComponents())
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -162,7 +157,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,
                                                          requestValidator,
-                                                         serviceConfiguration)
+                                                         serviceConfiguration, stubControllerComponents())
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -183,7 +178,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,
                                                          requestValidator,
-                                                         serviceConfiguration)
+                                                         serviceConfiguration, stubControllerComponents())
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -206,7 +201,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,
                                                          requestValidator,
-                                                         serviceConfiguration)
+                                                         serviceConfiguration, stubControllerComponents())
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -228,7 +223,7 @@ class TransmissionRequestControllerSpec extends UnitSpec with MockitoSugar {
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,
                                                          requestValidator,
-                                                         serviceConfiguration)
+                                                         serviceConfiguration, stubControllerComponents())
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {

@@ -1,15 +1,12 @@
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.{postRequestedFor, urlEqualTo, post, equalToXml, equalTo, aResponse, equalToJson, equalToIgnoreCase}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import com.github.tomakehurst.wiremock.matching.{
-  AnythingPattern,
-  RequestPatternBuilder
-}
+import com.github.tomakehurst.wiremock.matching.{AnythingPattern, RequestPatternBuilder}
 import com.github.tomakehurst.wiremock.stubbing.Scenario
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen, Matchers, WordSpec}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.HeaderNames.USER_AGENT
@@ -18,13 +15,13 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.duration.{Duration, _}
 import scala.xml.PrettyPrinter
 
 class FileTransmissionAcceptanceTests
-    extends UnitSpec
+    extends WordSpec
+    with Matchers
     with GuiceOneAppPerSuite
     with GivenWhenThen
     with BeforeAndAfterAll
@@ -39,7 +36,8 @@ class FileTransmissionAcceptanceTests
       "mdg.endpoint" -> "http://localhost:11111/mdg",
       "callbackValidation.allowedProtocols" -> "http",
       "initialBackoffAfterFailure" -> "75 milliseconds",
-      "deliveryWindowDuration" -> "15 seconds"
+      "deliveryWindowDuration" -> "15 seconds",
+      "metrics.jvm" -> "false"
     )
     .build()
 

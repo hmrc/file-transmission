@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,19 +18,18 @@ package uk.gov.hmrc.filetransmission.services.queue
 import akka.actor.ActorSystem
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.{GivenWhenThen, Matchers}
+import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, _}
 
 class WorkItemProcessingSchedulerSpec
-    extends UnitSpec
+    extends WordSpec
     with Matchers
     with GivenWhenThen
     with MockitoSugar
@@ -80,6 +79,8 @@ class WorkItemProcessingSchedulerSpec
 
   implicit val applicationLifecycle = new ApplicationLifecycle {
     override def addStopHook(hook: () => Future[_]): Unit = {}
+
+    override def stop(): Future[_] = Future.successful()
   }
 
   "scheduler" should {
