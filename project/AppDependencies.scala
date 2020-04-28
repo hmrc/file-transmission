@@ -15,7 +15,7 @@ object AppDependencies {
 
   def test(scope: String = "test,it") = Seq(
     "com.github.tomakehurst" %  "wiremock-jre8"            % "2.21.0"            % scope,
-    "uk.gov.hmrc"            %% "service-integration-test" % "0.10.0-play-27"    % scope,
+    "uk.gov.hmrc"            %% "service-integration-test" % "0.11.0-play-27"    % scope,
     "org.scalatest"          %% "scalatest"                % "3.0.5"             % scope,
     "org.mockito"            %  "mockito-core"             % "2.6.2"             % scope,
     "org.pegdown"            %  "pegdown"                  % "1.6.0"             % scope,
@@ -23,7 +23,7 @@ object AppDependencies {
     "org.xmlunit"            %  "xmlunit-core"             % "2.6.0"             % scope,
 
     "org.scalamock"          %% "scalamock-scalatest-support" % "3.5.0" % scope,
-    "org.scalatestplus.play" %% "scalatestplus-play"          % "3.1.3" % scope
+    "org.scalatestplus.play" %% "scalatestplus-play"          % "4.0.3" % scope
   )
 
 }
