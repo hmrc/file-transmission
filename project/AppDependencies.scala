@@ -7,8 +7,8 @@ object AppDependencies {
   val compile = Seq(
     ws,
     "org.scala-lang.modules" %% "scala-xml"        % "1.1.0",
-    "uk.gov.hmrc"   %% "bootstrap-backend-play-27" % "2.4.0",
-    "uk.gov.hmrc"   %% "simple-reactivemongo"      % "7.26.0-play-27",
+    "uk.gov.hmrc"   %% "bootstrap-backend-play-27" % "2.15.0",
+    "uk.gov.hmrc"   %% "simple-reactivemongo"      % "7.27.0-play-27",
     "org.typelevel" %% "cats-core"                 % "1.0.1",
     "uk.gov.hmrc"   %% "work-item-repo"            % "7.3.0-play-27"
   )
