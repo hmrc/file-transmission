@@ -116,7 +116,7 @@ class TransmissionRequestControllerSpec extends WordSpec with Matchers with Mock
     "valid request should return 200" in {
 
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "VALID-AGENT"),
+        .withHeaders(("User-Agent", serviceConfiguration.allowedUserAgents.head),
                      ("x-request-id", "some-request-id"),
                      ("x-session-id", "some-session-id"))
         .withBody(validRequestBody)
@@ -144,9 +144,9 @@ class TransmissionRequestControllerSpec extends WordSpec with Matchers with Mock
       }
     }
 
-    "invalid white-listed request should return 400" in {
+    "invalid request from allowed user-agent should return 400" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "VALID-AGENT"),
+        .withHeaders(("User-Agent", serviceConfiguration.allowedUserAgents.head),
                      ("x-request-id", "some-request-id"),
                      ("x-session-id", "some-session-id"))
         .withBody(Json.obj("invalid" -> "value"))
@@ -165,9 +165,9 @@ class TransmissionRequestControllerSpec extends WordSpec with Matchers with Mock
       }
     }
 
-    "invalid white-listed request (invalid callback url format) should return 400" in {
+    "a request with an invalid callback url format from an allowed user-agent should receive a 400 result" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "VALID-AGENT"),
+        .withHeaders(("User-Agent", serviceConfiguration.allowedUserAgents.head),
                      ("x-request-id", "some-request-id"),
                      ("x-session-id", "some-session-id"))
         .withBody(requestBodyWithInvalidCallbackUrl)
@@ -186,9 +186,9 @@ class TransmissionRequestControllerSpec extends WordSpec with Matchers with Mock
       }
     }
 
-    "invalid white-listed request (invalid callback url protocol) should return 400" in {
+    "a request with an invalid callback url protocol from an allowed user-agent should receive a 400 result" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "VALID-AGENT"),
+        .withHeaders(("User-Agent", serviceConfiguration.allowedUserAgents.head),
                      ("x-request-id", "some-request-id"),
                      ("x-session-id", "some-session-id"))
         .withBody(validRequestBody)
@@ -210,9 +210,9 @@ class TransmissionRequestControllerSpec extends WordSpec with Matchers with Mock
       }
     }
 
-    "valid yet non-whitelisted request should return 403" in {
+    "an otherwise valid request from an unrecognised user-agent should receive a 403 result" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "INVALID-AGENT"),
+        .withHeaders(("User-Agent", "UNRECOGNISED-AGENT"),
                      ("x-request-id", "some-request-id"),
                      ("x-session-id", "some-session-id"))
         .withBody(validRequestBody)
