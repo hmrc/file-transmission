@@ -7,15 +7,15 @@ object AppDependencies {
   val compile = Seq(
     ws,
     "org.scala-lang.modules" %% "scala-xml"        % "1.1.0",
-    "uk.gov.hmrc"   %% "bootstrap-backend-play-27" % "2.24.0",
-    "uk.gov.hmrc"   %% "simple-reactivemongo"      % "7.30.0-play-27",
+    "uk.gov.hmrc"   %% "bootstrap-backend-play-27" % "2.25.0",
+    "uk.gov.hmrc"   %% "simple-reactivemongo"      % "7.31.0-play-27",
     "org.typelevel" %% "cats-core"                 % "1.0.1",
-    "uk.gov.hmrc"   %% "work-item-repo"            % "7.6.0-play-27"
+    "uk.gov.hmrc"   %% "work-item-repo"            % "7.11.0-play-27"
   )
 
   def test(scope: String = "test,it") = Seq(
     "com.github.tomakehurst" %  "wiremock-jre8"            % "2.21.0"            % scope,
-    "uk.gov.hmrc"            %% "service-integration-test" % "0.12.0-play-27"    % scope,
+    "uk.gov.hmrc"            %% "service-integration-test" % "0.13.0-play-27"    % scope,
     "org.scalatest"          %% "scalatest"                % "3.0.5"             % scope,
     "org.mockito"            %  "mockito-core"             % "2.6.2"             % scope,
     "org.pegdown"            %  "pegdown"                  % "1.6.0"             % scope,
