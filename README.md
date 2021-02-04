@@ -12,7 +12,7 @@
   a. [Request file transmission](#service__request)
   b. [Example `file-transmission` request](#service__example)
   c. [Request outcome](#service__output)
-  d. [Whitelisting client services](#service__whitelist)
+  d. [Allowlisting client services](#service__allowlist)
 5. [Running and maintenance of the service](#run)
   a. [Run locally](#run__local)
 6. [Appendix](#appendix)
@@ -42,8 +42,8 @@ has been accepted by MDG or a relevant error
 [[Back to the top]](#top)
 
 ## Onboarding requirements <a name="onboard"></a>
-To use `file-transmission`, the consuming service must let Platform Services know :
-- the User-Agent request header of the service so it can be whitelisted
+To use `file-transmission`, the consuming service must let PlatOps know :
+- the User-Agent request header of the service so that it can be allowlisted
 
 [[Back to the top]](#top)
 
@@ -60,8 +60,8 @@ been provided are not necessary.
 Transmission requests are processed asynchronously, and after each request has been sent, the consuming service
 receives the callback with sending status.
 
-Whitelisted consuming service first make a POST request to the `/file-transmission/request` endpoint. 
-The request should provide data about the batch, each file in the batch, and a callback URL that will be used to asynchronously notify the consuming service when MDG has processed the request. The consuming service may also provide additional optional metadata that it wants to pass through MDG.
+Allowlisted consuming services first make a POST request to the `/file-transmission/request` endpoint. 
+The request should provide data about the batch, each file in the batch, and a callback URL that will be used to asynchronously notify the consuming service when MDG has processed the request. The consuming service may also provide additional optional metadata that it wants to pass through to MDG.
 
 The body of a request for transmission of a file in a batch would typically comprise the below:
 - `callbackUrl` - URL provided by the consuming service, that is used by `file-transmission` to notify whether the request was accepted by MDG. Please be aware that this should be an HTTPS endpoint.
@@ -181,9 +181,9 @@ is increased.
 
 [[Back to the top]](#top)
 
-### Whitelisting client services <a name="service__whitelist"></a>
+### Allowlisting client services <a name="service__allowlist"></a>
 
-Any service using `file-transmission` must be whitelisted. Please contact Platform Services if you would like to use this service.
+Any service using `file-transmission` must be allowlisted. Please contact PlatOps if you would like to use this service.
 Consuming services must identify themselves in requests via the `User-Agent` header. If the supplied value is not in `file-transmission`'s list of allowed services then the `/file-transmission/request` call will fail with a `403` error.
 
 In addition to returning the `403` error, `file-transmission` will log details of the Forbidden request. For example:

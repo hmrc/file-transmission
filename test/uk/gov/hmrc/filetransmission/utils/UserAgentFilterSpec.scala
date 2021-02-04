@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import play.api.test.{FakeRequest, Helpers}
+import play.mvc.Http.HeaderNames.USER_AGENT
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 
 import scala.concurrent.Future
@@ -39,24 +40,40 @@ class UserAgentFilterSpec extends WordSpec with Matchers with GivenWhenThen with
 
     implicit val timeout = Timeout(3.seconds)
 
-    "accept request if user agent in whitelist" in {
-      Given("a service configuration with no whitelist set")
+    "accept request if user agent is in allowlist" in {
+      Given("a service configuration with an allowlist")
+      val allowedUserAgent = "ALLOWED-AGENT"
       val config = mock[ServiceConfiguration]
-      Mockito.when(config.allowedUserAgents).thenReturn(List("VALID-AGENT"))
+      Mockito.when(config.allowedUserAgents).thenReturn(List(allowedUserAgent))
       val filter = new UserAgentFilterImpl(config)
 
       When("a request is received")
-      val result = filter.onlyAllowedServices(block)(FakeRequest().withHeaders(("User-Agent", "VALID-AGENT")))
+      val result = filter.onlyAllowedServices(block)(FakeRequest().withHeaders(USER_AGENT -> allowedUserAgent))
 
       Then("the request should be passed through the filter")
       Helpers.status(result)                  shouldBe 200
-      Helpers.contentAsString(result) shouldBe "This is a successful result done by VALID-AGENT"
+      Helpers.contentAsString(result) shouldBe s"This is a successful result done by $allowedUserAgent"
     }
 
-    "reject request if user agent not in whitelist" in {
-      Given("a service configuration with no whitelist set")
+    "reject request if user agent is not in allowlist" in {
+      Given("a service configuration with an allowlist")
       val config = mock[ServiceConfiguration]
-      Mockito.when(config.allowedUserAgents).thenReturn(List("VALID-AGENT"))
+      Mockito.when(config.allowedUserAgents).thenReturn(List("ALLOWED-AGENT"))
+      val filter = new UserAgentFilterImpl(config)
+
+      When("a request is received")
+      val result = filter.onlyAllowedServices(block)(FakeRequest().withHeaders(USER_AGENT -> "SOME-UNRECOGNISED-AGENT"))
+
+      Then("the filter should reject as forbidden")
+      Helpers.status(result) shouldBe 403
+      Helpers.contentAsString(result) shouldBe "This service is not allowed to use file-transmission. " +
+        "If you need to use this service, please contact Platform Services team."
+    }
+
+    "reject request if no user agent is supplied" in {
+      Given("a service configuration with an allowlist")
+      val config = mock[ServiceConfiguration]
+      Mockito.when(config.allowedUserAgents).thenReturn(List("ALLOWED-AGENT"))
       val filter = new UserAgentFilterImpl(config)
 
       When("a request is received")
