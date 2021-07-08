@@ -22,8 +22,6 @@ class MdgRequestSerializer {
 
   def serialize(request: TransmissionRequest): String = {
 
-    val printer = new scala.xml.PrettyPrinter(132, 4)
-
     val propertiesXml = for (property <- request.properties)
       yield <mdg:property>
         <mdg:name>{property.name}</mdg:name>
@@ -62,7 +60,7 @@ class MdgRequestSerializer {
         </mdg:destinations>
       </mdg:BatchFileInterfaceMetadata>
 
-    printer.format(xml)
+    xml.toString()
   }
 
 }

@@ -25,6 +25,7 @@ import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
 
 class RequestValidator @Inject()(configuration: ServiceConfiguration) {
 
+  private val logger = Logger(getClass)
   private val allowedCallbackProtocols: Seq[String] = configuration.allowedCallbackProtocols
 
   def validate(request: TransmissionRequest): Either[String, Unit] = {
@@ -34,7 +35,7 @@ class RequestValidator @Inject()(configuration: ServiceConfiguration) {
 
       if (isAllowedCallbackProtocol) Right(())
       else {
-        Logger.warn(s"Invalid callback url protocol: [$callbackUrl].")
+        logger.warn(s"Invalid callback url protocol: [$callbackUrl].")
         Left(s"Invalid callback url protocol: [$callbackUrl]. Protocol must be in: [${allowedCallbackProtocols.mkString(",")}].")
       }
     }

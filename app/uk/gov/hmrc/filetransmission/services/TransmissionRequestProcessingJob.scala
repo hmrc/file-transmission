@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.filetransmission.services
 
-import java.time.Clock
-
-import javax.inject.Inject
-import org.joda.time.{DateTime, Instant}
+import org.joda.time.DateTime
 import play.api.Logger
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.{MdgRequestSuccessful, _}
 import uk.gov.hmrc.filetransmission.model.{FailedDeliveryAttempt, TransmissionRequestEnvelope}
 import uk.gov.hmrc.filetransmission.services.queue._
 import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
+import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.Clock
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class TransmissionRequestProcessingJob @Inject()(
@@ -37,6 +36,8 @@ class TransmissionRequestProcessingJob @Inject()(
     configuration: ServiceConfiguration,
     clock: Clock)(implicit ec: ExecutionContext)
     extends QueueJob {
+
+  private val logger = Logger(getClass)
 
   override def process(item: TransmissionRequestEnvelope,
                        nextRetryTime: DateTime,
@@ -81,7 +82,7 @@ class TransmissionRequestProcessingJob @Inject()(
 
       val updatedDeliveryAttempts: Seq[FailedDeliveryAttempt] = envelope.deliveryAttempts ++ newFailedDeliveryAttempt
 
-      Logger.warn(
+      logger.warn(
         s"""Failed to deliver notification within delivery window for file reference: [${envelope.request.file.reference}] before [$timeToGiveUp].
           | Failed delivery attempts were: [${updatedDeliveryAttempts.mkString(",")}].
           | """.stripMargin)

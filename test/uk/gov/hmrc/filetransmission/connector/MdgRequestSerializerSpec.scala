@@ -59,7 +59,7 @@ class MdgRequestSerializerSpec extends WordSpec with Matchers with GivenWhenThen
       }
     }
 
-    "produces requests that are compliant with MDG XSD schema - hanlding the case when timestamp has a timezone" in {
+    "produces requests that are compliant with MDG XSD schema - handling the case when timestamp has a timezone" in {
 
       val request = TransmissionRequest(
         Batch("A", 10),
@@ -157,6 +157,30 @@ class MdgRequestSerializerSpec extends WordSpec with Matchers with GivenWhenThen
       withClue(d) {
         assert(!d.hasDifferences)
       }
+    }
+
+
+    "does not add whitespace to long fields" in {
+      val longFilename = 'a'.to(200) + ".pdf"
+      val request = TransmissionRequest(
+        Batch("A", 10),
+        Interface("J", "1.0"),
+        File("ref",
+          new URL("http://127.0.0.1/test"),
+          longFilename,
+          "application/xml",
+          "checksum",
+          1,
+          1024,
+          Instant.now),
+        Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
+        new URL("http://127.0.0.1/test"),
+        Some(30 seconds)
+      )
+
+      val serializedRequest: String = serializer.serialize(request)
+
+      assert(serializedRequest.contains(s"<mdg:sourceFileName>$longFilename</mdg:sourceFileName>"))
     }
 
   }

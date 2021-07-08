@@ -22,12 +22,13 @@ import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.filetransmission.services.CallbackSender
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: ExecutionContext) extends CallbackSender {
+
+  private val logger = Logger(getClass)
 
   case class SuccessfulCallback(fileReference: String, batchId: String, outcome: String = "SUCCESS")
   case class FailureCallback(fileReference: String, batchId: String, outcome: String    = "FAILURE", errorDetails: String)
@@ -44,12 +45,12 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
       .POST[SuccessfulCallback, HttpResponse](request.callbackUrl.toString, callback)
       .map { response =>
         withLoggedContext(request) {
-          Logger.info(s"""Response from: [${request.callbackUrl}], to delivery successful callback: [$callback], was: [${response.status}].""")
+          logger.info(s"""Response from: [${request.callbackUrl}], to delivery successful callback: [$callback], was: [${response.status}].""")
         }
       } recoverWith {
       case t: Throwable =>
         withLoggedContext(request) {
-          Logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}], for request: [$request].", t)
+          logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}], for request: [$request].", t)
           Future.failed(t)
         }
     }
@@ -67,12 +68,12 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
       .POST[FailureCallback, HttpResponse](request.callbackUrl.toString, callback)
       .map { response =>
         withLoggedContext(request) {
-          Logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [$callback], was: [${response.status}].")
+          logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [$callback], was: [${response.status}].")
         }
       } recoverWith  {
       case t: Throwable =>
         withLoggedContext(request) {
-          Logger.error(s"""Failed to send delivery failure callback to: [${request.callbackUrl}], for request: [$request].""", t)
+          logger.error(s"""Failed to send delivery failure callback to: [${request.callbackUrl}], for request: [$request].""", t)
           Future.failed(t)
         }
     }
