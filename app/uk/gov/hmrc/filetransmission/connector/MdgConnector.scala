@@ -17,16 +17,15 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import java.util.UUID
-
 import cats.implicits._
+
 import javax.inject.Inject
 import play.api.Logger
 import play.api.http.{ContentTypes, HeaderNames, MimeTypes}
 import play.mvc.Http
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpClient, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -51,14 +50,15 @@ class MdgConnector @Inject()(
   def requestTransmission(request: TransmissionRequest)(
       implicit hc: HeaderCarrier): Future[MdgRequestResult] = {
 
+    val logger = Logger(getClass)
     val serializedRequest: String = requestSerializer.serialize(request)
     val correlationId = generateCorrelationId()
     val headers = buildHeaders(correlationId)
 
-    if (Logger.isDebugEnabled) {
+    if (logger.isDebugEnabled) {
       val safeHeaders =
         headers.filterNot(_._1 == Http.HeaderNames.AUTHORIZATION)
-      Logger.debug(
+      logger.debug(
         s"Sent request to MDG [${serviceConfiguration.mdgEndpoint}] with body [$serializedRequest], headers [$safeHeaders]")
     }
 
@@ -69,16 +69,16 @@ class MdgConnector @Inject()(
            .attempt) yield {
       result match {
         case Right(_) =>
-          Logger.info(
+          logger.info(
             s"Sending request for file with reference [${request.file.reference}] was successful. MDG Correlation id [$correlationId]")
           MdgRequestSuccessful
         case Left(e: BadRequestException) =>
-          Logger.warn(
+          logger.warn(
             s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [$e]",
             e)
           MdgRequestFatalError(e)
         case Left(e) =>
-          Logger.warn(
+          logger.warn(
             s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [$e]",
             e)
           MdgRequestError(e)

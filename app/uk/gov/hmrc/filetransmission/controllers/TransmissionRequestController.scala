@@ -25,7 +25,7 @@ import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.TransmissionService
 import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
 import uk.gov.hmrc.filetransmission.utils.UserAgentFilter
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,6 +39,8 @@ class TransmissionRequestController @Inject()(
   implicit ec: ExecutionContext)
   extends BackendController(cc)
     with UserAgentFilter {
+
+  private val logger = Logger(getClass)
 
   def requestTransmission() = Action.async(parse.json) {
     implicit request: Request[JsValue] =>
@@ -57,7 +59,7 @@ class TransmissionRequestController @Inject()(
 
   def clearRequestQueue() = Action.async {
     workItemService.clearQueue().map{ cleared =>
-      Logger.info(s"Clear request queue result was: [$cleared].")
+      logger.info(s"Clear request queue result was: [$cleared].")
       Ok(Json.parse(s"""{"cleared":"$cleared"}"""))}
   }
 }

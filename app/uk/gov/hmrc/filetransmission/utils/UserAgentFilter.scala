@@ -26,6 +26,7 @@ import scala.concurrent.Future
 
 trait UserAgentFilter {
 
+  private val logger = Logger(getClass)
   protected val configuration: ServiceConfiguration
 
   private val userAgents: Seq[String] = configuration.allowedUserAgents
@@ -35,7 +36,7 @@ trait UserAgentFilter {
       case Some(userAgent) if allowedUserAgent(userAgent) =>
         block(userAgent)
       case _ => {
-        Logger.warn(s"Invalid User-Agent: [${request.headers.get(HeaderNames.USER_AGENT)}].")
+        logger.warn(s"Invalid User-Agent: [${request.headers.get(HeaderNames.USER_AGENT)}].")
 
         Future.successful(
           Forbidden(
