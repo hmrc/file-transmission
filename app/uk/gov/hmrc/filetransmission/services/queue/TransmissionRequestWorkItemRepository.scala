@@ -97,7 +97,7 @@ object WorkItemFormat {
         (__ \ "status").read[uk.gov.hmrc.workitem.ProcessingStatus] and
         (__ \ "failures").read[Int].orElse(Reads.pure(0)) and
         (__ \ "body").read[T]
-    )(WorkItem.apply[T](_, _, _, _, _, _, _))
+    )(WorkItem.apply[T] _)
 
     val writes = (
       (__ \ "id").write[BSONObjectID] and

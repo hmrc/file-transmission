@@ -21,26 +21,33 @@ import java.time.{Clock, Instant}
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.{any, eq => meq}
-import org.mockito.Mockito.{verify, when}
-import org.mockito.{ArgumentCaptor, Mockito}
-import org.scalatest.concurrent.Eventually
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.{Mockito, MockitoSugar}
+import org.scalatest.GivenWhenThen
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.{MdgConnector, MdgRequestError, MdgRequestFatalError, MdgRequestSuccessful}
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.queue.{ProcessingFailed, ProcessingFailedDoNotRetry, ProcessingSuccessful}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 
 class TransmissionRequestProcessingJobSpec
-    extends WordSpec
+  extends AnyWordSpec
     with Matchers
     with GivenWhenThen
+    with Eventually
     with MockitoSugar
-    with Eventually {
+    with ScalaFutures {
+
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(
+    timeout = scaled(Span(10, Seconds)),
+    interval = scaled(Span(150, Millis))
+  )
 
   "transmission request" should {
 
@@ -59,7 +66,7 @@ class TransmissionRequestProcessingJobSpec
            Instant.now),
       Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
       new URL("http://127.0.0.1/test"),
-      Some(30 seconds)
+      Some(30.seconds)
     )
 
     val envelope =
@@ -74,33 +81,26 @@ class TransmissionRequestProcessingJobSpec
 
       val transmissionService =
         new TransmissionRequestProcessingJob(mdgConnector,
-                                             notificationService,
-                                             configuration,
-                                             clock)
+          notificationService,
+          configuration,
+          clock)
 
       Given("MDG is working fine")
-      when(mdgConnector.requestTransmission(any())(any()))
-        .thenReturn(Future.successful((MdgRequestSuccessful)))
+      when(mdgConnector.requestTransmission(meq(request))(any()))
+        .thenReturn(Future.successful(MdgRequestSuccessful))
 
       And("consuming service is working fine")
       when(notificationService.sendSuccessfulCallback(any())(any()))
         .thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result =
-        Await.result(
-          transmissionService.process(envelope,
-                                      DateTime.now().plusSeconds(5),
-                                      DateTime.now().minusSeconds(5)),
-          10.seconds)
+      val result = transmissionService.process(envelope,
+        DateTime.now().plusSeconds(5),
+        DateTime.now().minusSeconds(5)).futureValue
 
       Then("immediate successful response is returned")
       result shouldBe ProcessingSuccessful
 
-      And("call to MDG has been made")
-      eventually {
-        verify(mdgConnector).requestTransmission(meq(request))(any())
-      }
       And("consuming service is notified")
       eventually {
         verify(notificationService).sendSuccessfulCallback(meq(request))(any())
@@ -117,33 +117,26 @@ class TransmissionRequestProcessingJobSpec
 
       val transmissionService =
         new TransmissionRequestProcessingJob(mdgConnector,
-                                             notificationService,
-                                             configuration,
-                                             clock)
+          notificationService,
+          configuration,
+          clock)
 
       Given("MDG is faulty")
-      when(mdgConnector.requestTransmission(any[TransmissionRequest])(any()))
+      when(mdgConnector.requestTransmission(meq(request))(any()))
         .thenReturn(Future.successful(
-          MdgRequestError(new Exception("Planned exception"))))
+          MdgRequestError("Planned exception")))
 
       And("consuming service is working fine")
       when(notificationService.sendFailedCallback(any(), any())(any()))
         .thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result =
-        Await.result(transmissionService.process(envelope,
-                                                 DateTime.now(),
-                                                 DateTime.now().plusSeconds(5)),
-                     10.seconds)
+      val result = transmissionService.process(envelope,
+          DateTime.now(),
+          DateTime.now().plusSeconds(5)).futureValue
 
       Then("response saying that processing failed should be returned")
       result shouldBe a[ProcessingFailed]
-
-      And("call to MDG has been made")
-      eventually {
-        verify(mdgConnector).requestTransmission(meq(request))(any())
-      }
 
       And("no callback is sent")
       Mockito.verifyZeroInteractions(notificationService)
@@ -158,42 +151,31 @@ class TransmissionRequestProcessingJobSpec
 
       val transmissionService =
         new TransmissionRequestProcessingJob(mdgConnector,
-                                             notificationService,
-                                             configuration,
-                                             clock)
+          notificationService,
+          configuration,
+          clock)
 
       Given("MDG is faulty")
-      when(mdgConnector.requestTransmission(any())(any()))
+      when(mdgConnector.requestTransmission(meq(request))(any()))
         .thenReturn(Future.successful(
-          MdgRequestFatalError(new Exception("Planned exception"))))
+          MdgRequestFatalError("Planned exception")))
 
       And("consuming service is working fine")
       when(notificationService.sendFailedCallback(any(), any())(any()))
         .thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result =
-        Await.result(transmissionService.process(envelope,
-                                                 DateTime.now(),
-                                                 DateTime.now().plusSeconds(5)),
-                     10.seconds)
+      val result = transmissionService.process(envelope,
+          DateTime.now(),
+          DateTime.now().plusSeconds(5)).futureValue
 
       Then("response saying that processing failed should be returned")
       result shouldBe a[ProcessingFailedDoNotRetry]
 
-      And("call to MDG has been made")
-      eventually {
-        verify(mdgConnector).requestTransmission(meq(request))(any())
-      }
-
       And("consuming service is notified about failure")
       eventually {
-        val exceptionCaptor: ArgumentCaptor[Throwable] =
-          ArgumentCaptor.forClass(classOf[Throwable])
-        verify(notificationService)
-          .sendFailedCallback(meq(request), exceptionCaptor.capture())(any())
-        exceptionCaptor.getValue.getMessage shouldBe "Planned exception"
-
+        verify(notificationService).sendFailedCallback(meq(request), meq("Planned exception"))(any())
+        Mockito.verifyNoMoreInteractions(notificationService)
       }
       Mockito.verifyNoMoreInteractions(notificationService)
 
@@ -211,38 +193,27 @@ class TransmissionRequestProcessingJobSpec
                                              clock)
 
       Given("MDG is faulty")
-      when(mdgConnector.requestTransmission(any())(any()))
+      when(mdgConnector.requestTransmission(meq(request))(any()))
         .thenReturn(Future.successful(
-          MdgRequestError(new Exception("Planned exception"))))
+          MdgRequestError("Planned exception")))
 
       And("consuming service is working fine")
       when(notificationService.sendFailedCallback(any(), any())(any()))
         .thenReturn(Future.successful(()))
 
       When("request made to transmission service")
-      val result =
-        Await.result(transmissionService.process(envelope,
-                                                 DateTime.now().plusSeconds(5),
-                                                 DateTime.now()),
-                     10.seconds)
+      val result = transmissionService.process(envelope,
+          DateTime.now().plusSeconds(5),
+          DateTime.now()).futureValue
 
       Then(
         "response saying that processing failed and no more retry attemts are required, should be returned")
       result shouldBe a[ProcessingFailedDoNotRetry]
 
-      And("call to MDG has been made")
-      eventually {
-        verify(mdgConnector).requestTransmission(meq(request))(any())
-      }
-
       And("consuming service is notified about failure")
       eventually {
-        val exceptionCaptor: ArgumentCaptor[Throwable] =
-          ArgumentCaptor.forClass(classOf[Throwable])
-        verify(notificationService)
-          .sendFailedCallback(meq(request), exceptionCaptor.capture())(any())
-        exceptionCaptor.getValue.getMessage shouldBe "Planned exception"
-
+        verify(notificationService).sendFailedCallback(meq(request), meq("Planned exception"))(any())
+        Mockito.verifyNoMoreInteractions(notificationService)
       }
       Mockito.verifyNoMoreInteractions(notificationService)
     }

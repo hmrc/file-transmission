@@ -22,33 +22,40 @@ import java.time.Instant
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo, _}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 import uk.gov.hmrc.filetransmission.model._
-import uk.gov.hmrc.filetransmission.utils.TestHttpClient
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.test.HttpClientSupport
 
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 class HttpCallbackSenderSpec
-    extends WordSpec
+    extends AnyWordSpec
     with GivenWhenThen
     with MockitoSugar
     with Matchers
-    with BeforeAndAfterAll {
-
-  val httpClient = new TestHttpClient()
+    with BeforeAndAfterAll
+    with HttpClientSupport
+    with ScalaFutures {
 
   val wiremockPort = 11111
 
   val callbackServer = new WireMockServer(wireMockConfig().port(wiremockPort))
 
-  override def beforeAll() =
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(
+    timeout = scaled(Span(10, Seconds)),
+    interval = scaled(Span(150, Millis))
+  )
+
+  override def beforeAll(): Unit =
     callbackServer.start()
 
-  override def afterAll() =
+  override def afterAll(): Unit =
     callbackServer.stop()
 
   private def stubCallbackReceiverToReturnValidResponse(): Unit =
@@ -95,10 +102,7 @@ class HttpCallbackSenderSpec
 
       stubCallbackReceiverToReturnValidResponse()
 
-      val result =
-        Await.ready(callbackSender.sendSuccessfulCallback(request), 10 seconds)
-
-      result.value.get.isSuccess shouldBe true
+      callbackSender.sendSuccessfulCallback(request).futureValue shouldBe((): Unit)
 
       callbackServer.verify(
         postRequestedFor(urlEqualTo("/listen"))
@@ -108,7 +112,7 @@ class HttpCallbackSenderSpec
                |   "batchId" : "${request.batch.id}",
                |   "outcome" : "SUCCESS"
                | }
-                                       """.stripMargin)))
+               | """.stripMargin)))
 
     }
 
@@ -116,48 +120,34 @@ class HttpCallbackSenderSpec
 
       stubCallbackReceiverToReturnInvalidResponse()
 
-      val result =
-        Await.ready(callbackSender.sendSuccessfulCallback(request), 10 seconds)
+      assert(callbackSender.sendFailedCallback(request, "Planned exception").failed.futureValue.isInstanceOf[Exception])
 
-      result.value.get.isFailure shouldBe true
     }
 
     "allow to send error notifications to consuming services" in {
 
       stubCallbackReceiverToReturnValidResponse()
 
-      val result =
-        Await.ready(
-          callbackSender.sendFailedCallback(request,
-                                            new Exception("Planned exception")),
-          10 seconds)
-
-      result.value.get.isSuccess shouldBe true
+      callbackSender.sendFailedCallback(request, "Planned exception").futureValue shouldBe((): Unit)
 
       callbackServer.verify(
         postRequestedFor(urlEqualTo("/listen"))
-          .withRequestBody(equalToJson(s"""
+          .withRequestBody(equalToJson(
+            s"""
                | {
                |   "fileReference" : "${request.file.reference}",
                |   "batchId" : "${request.batch.id}",
                |   "outcome" : "FAILURE",
                |   "errorDetails" : "Planned exception"
                | }
-                                       """.stripMargin)))
+               | """.stripMargin)))
     }
 
     "properly handle errors when sending error notifications" in {
 
       stubCallbackReceiverToReturnInvalidResponse()
 
-      val result =
-        Await.ready(
-          callbackSender.sendFailedCallback(request,
-                                            new Exception("Planned exception")),
-          10 seconds)
-
-      result.value.get.isFailure shouldBe true
-
+      assert(callbackSender.sendFailedCallback(request, "Planned exception").failed.futureValue.isInstanceOf[Exception])
     }
 
   }

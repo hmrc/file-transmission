@@ -17,9 +17,10 @@
 package uk.gov.hmrc.filetransmission.utils
 
 import akka.util.Timeout
-import org.mockito.Mockito
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.{Mockito, MockitoSugar}
+import org.scalatest.GivenWhenThen
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import play.api.test.{FakeRequest, Helpers}
@@ -29,7 +30,7 @@ import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class UserAgentFilterSpec extends WordSpec with Matchers with GivenWhenThen with MockitoSugar {
+class UserAgentFilterSpec extends AnyWordSpec with Matchers with GivenWhenThen with MockitoSugar {
 
   class UserAgentFilterImpl(override val configuration: ServiceConfiguration) extends UserAgentFilter
 
@@ -38,7 +39,7 @@ class UserAgentFilterSpec extends WordSpec with Matchers with GivenWhenThen with
       Future.successful(Ok(s"This is a successful result done by $callingService"))
     }
 
-    implicit val timeout = Timeout(3.seconds)
+    implicit val timeout: Timeout = Timeout(3.seconds)
 
     "accept request if user agent is in allowlist" in {
       Given("a service configuration with an allowlist")

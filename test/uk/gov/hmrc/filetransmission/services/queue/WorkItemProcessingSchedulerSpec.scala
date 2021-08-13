@@ -16,11 +16,13 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 import akka.actor.ActorSystem
+import org.mockito.MockitoSugar
+import org.scalatest.GivenWhenThen
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
@@ -29,7 +31,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, _}
 
 class WorkItemProcessingSchedulerSpec
-    extends WordSpec
+    extends AnyWordSpec
     with Matchers
     with GivenWhenThen
     with MockitoSugar
@@ -75,12 +77,12 @@ class WorkItemProcessingSchedulerSpec
     }
   }
 
-  implicit val actorSystem = ActorSystem.create()
+  implicit val actorSystem: ActorSystem = ActorSystem.create()
 
-  implicit val applicationLifecycle = new ApplicationLifecycle {
+  implicit val applicationLifecycle: ApplicationLifecycle = new ApplicationLifecycle {
     override def addStopHook(hook: () => Future[_]): Unit = {}
 
-    override def stop(): Future[_] = Future.successful()
+    override def stop(): Future[_] = Future.successful(())
   }
 
   "scheduler" should {
@@ -88,8 +90,8 @@ class WorkItemProcessingSchedulerSpec
     val configuration = new ServiceConfiguration {
       override def mdgEndpoint: String = ???
       override def allowedUserAgents: Seq[String] = ???
-      override def queuePollingInterval: Duration = 1 second
-      override def queueRetryAfterFailureInterval: Duration = 2 seconds
+      override def queuePollingInterval: Duration = 1.second
+      override def queueRetryAfterFailureInterval: Duration = 2.seconds
       override def inFlightLockDuration: Duration = ???
       override def initialBackoffAfterFailure: Duration = ???
       override def allowedCallbackProtocols: Seq[String] = ???

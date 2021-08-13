@@ -33,8 +33,8 @@ import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters.{ClockJodaExtension
 
 sealed trait ProcessingResult
 case object ProcessingSuccessful extends ProcessingResult
-case class ProcessingFailed(error: Throwable) extends ProcessingResult
-case class ProcessingFailedDoNotRetry(error: Throwable) extends ProcessingResult
+case class ProcessingFailed(error: String) extends ProcessingResult
+case class ProcessingFailedDoNotRetry(error: String) extends ProcessingResult
 
 trait QueueJob {
   def process(item: TransmissionRequestEnvelope,
@@ -86,8 +86,8 @@ class MongoBackedWorkItemService @Inject()(
     // Update the work item with the latest FailedDeliveryAttempt, then update the status.
     def updateStatusForFailedDeliveryAttempt(status: ResultStatus,
                                              availableAt: Option[DateTime],
-                                             ex: Throwable): Future[Boolean] = {
-      val updatedEnvelope = workItem.item.withFailedDeliveryAttempt(FailedDeliveryAttempt(processedAt, ex.getMessage))
+                                             error: String): Future[Boolean] = {
+      val updatedEnvelope = workItem.item.withFailedDeliveryAttempt(FailedDeliveryAttempt(processedAt, error))
 
       for {
         _       <- repository.markAs(workItem.id, status, availableAt)
@@ -103,10 +103,10 @@ class MongoBackedWorkItemService @Inject()(
       processingResult match {
         case ProcessingSuccessful =>
           repository.complete(workItem.id, Succeeded)
-        case ProcessingFailed(ex) =>
-          updateStatusForFailedDeliveryAttempt(Failed, Some(nextRetryTime), ex)
-        case ProcessingFailedDoNotRetry(ex) =>
-          updateStatusForFailedDeliveryAttempt(PermanentlyFailed, None, ex)
+        case ProcessingFailed(error) =>
+          updateStatusForFailedDeliveryAttempt(Failed, Some(nextRetryTime), error)
+        case ProcessingFailedDoNotRetry(error) =>
+          updateStatusForFailedDeliveryAttempt(PermanentlyFailed, None, error)
       }
     }
   }

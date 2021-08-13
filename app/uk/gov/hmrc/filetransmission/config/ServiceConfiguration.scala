@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.filetransmission.config
 
-import java.util.concurrent.TimeUnit
-
 import javax.inject.Inject
 import org.apache.commons.lang3.StringUtils.isNotBlank
 import play.api.Configuration

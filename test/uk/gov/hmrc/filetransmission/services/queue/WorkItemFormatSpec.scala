@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 import org.joda.time.DateTime
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{Format, Json}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.workitem
 import uk.gov.hmrc.workitem.WorkItem
 
-class WorkItemFormatSpec extends WordSpec with Matchers  {
+class WorkItemFormatSpec extends AnyWordSpec with Matchers  {
 
   case class SampleObject(value: String)
 

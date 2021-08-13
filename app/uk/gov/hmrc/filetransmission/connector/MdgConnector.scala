@@ -17,29 +17,29 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import java.util.UUID
-import cats.implicits._
 
 import javax.inject.Inject
 import play.api.Logger
-import play.api.http.{ContentTypes, HeaderNames, MimeTypes}
+import play.api.http.{ContentTypes, HeaderNames, MimeTypes, Status}
 import play.mvc.Http
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait MdgRequestResult {
-  def error: Option[Throwable]
+  def error: Option[String]
 }
 case object MdgRequestSuccessful extends MdgRequestResult {
-  override def error = None
+  override def error: Option[String] = None
 }
-case class MdgRequestError(e: Throwable) extends MdgRequestResult {
-  override def error = Some(e)
+case class MdgRequestError(e: String) extends MdgRequestResult {
+  override def error: Option[String] = Some(e)
 }
-case class MdgRequestFatalError(e: Throwable) extends MdgRequestResult {
-  override def error = Some(e)
+case class MdgRequestFatalError(e: String) extends MdgRequestResult {
+  override def error: Option[String] = Some(e)
 }
 
 class MdgConnector @Inject()(
@@ -62,32 +62,27 @@ class MdgConnector @Inject()(
         s"Sent request to MDG [${serviceConfiguration.mdgEndpoint}] with body [$serializedRequest], headers [$safeHeaders]")
     }
 
-    for (result <- httpClient
-           .POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,
-                                     serializedRequest,
-                                     headers)
-           .attempt) yield {
-      result match {
-        case Right(_) =>
+    httpClient.POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,serializedRequest,headers).map { response =>
+      response.status match {
+        case s if Status.isSuccessful(s) =>
           logger.info(
             s"Sending request for file with reference [${request.file.reference}] was successful. MDG Correlation id [$correlationId]")
           MdgRequestSuccessful
-        case Left(e: BadRequestException) =>
+
+        case s if Status.isClientError(s) =>
           logger.warn(
-            s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [$e]",
-            e)
-          MdgRequestFatalError(e)
-        case Left(e) =>
+            s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [${response.body}]")
+          MdgRequestFatalError(response.body)
+
+        case _ =>
           logger.warn(
-            s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [$e]",
-            e)
-          MdgRequestError(e)
+            s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [${response.body}]")
+          MdgRequestError(response.body)
       }
     }
-
   }
 
-  private def generateCorrelationId() = UUID.randomUUID().toString
+  private def generateCorrelationId(): String = UUID.randomUUID().toString
 
   private def buildHeaders(correlationId: String) =
     Seq(
