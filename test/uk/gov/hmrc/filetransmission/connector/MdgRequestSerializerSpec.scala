@@ -19,14 +19,18 @@ package uk.gov.hmrc.filetransmission.connector
 import java.net.URL
 import java.time.Instant
 
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
+import org.scalatest.GivenWhenThen
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import org.xml.sax.SAXParseException
 import uk.gov.hmrc.filetransmission.model._
 
 import scala.concurrent.duration._
 import scala.util.Try
+import scala.xml.Elem
+import scala.xml.factory.XMLLoader
 
-class MdgRequestSerializerSpec extends WordSpec with Matchers with GivenWhenThen {
+class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
 
   "MdgRequestSerializer" should {
 
@@ -47,7 +51,7 @@ class MdgRequestSerializerSpec extends WordSpec with Matchers with GivenWhenThen
              Instant.now),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
         new URL("http://127.0.0.1/test"),
-        Some(30 seconds)
+        Some(30.seconds)
       )
 
       val serializedRequest: String = serializer.serialize(request)
@@ -201,7 +205,7 @@ class MdgRequestSerializerSpec extends WordSpec with Matchers with GivenWhenThen
     factory.setSchema(schema)
 
     val validatingParser = factory.newSAXParser()
-    val xmlLoader = new scala.xml.factory.XMLLoader[scala.xml.Elem] {
+    val xmlLoader: XMLLoader[Elem] = new scala.xml.factory.XMLLoader[scala.xml.Elem] {
       override def parser = validatingParser
 
       override def adapter =

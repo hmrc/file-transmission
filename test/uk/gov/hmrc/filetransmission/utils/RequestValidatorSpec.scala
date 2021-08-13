@@ -19,15 +19,16 @@ package uk.gov.hmrc.filetransmission.utils
 import java.net.URL
 import java.time.Instant
 
-import org.mockito.Mockito
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.{Mockito, MockitoSugar}
+import org.scalatest.GivenWhenThen
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
 
 
 class RequestValidatorSpec
-    extends WordSpec
+    extends AnyWordSpec
     with Matchers
     with GivenWhenThen
     with MockitoSugar {

@@ -18,10 +18,11 @@ package uk.gov.hmrc.filetransmission.utils
 
 import java.net.URL
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
 
-class HttpUrlFormatSpec extends WordSpec with Matchers {
+class HttpUrlFormatSpec extends AnyWordSpec with Matchers {
 
   "reads should properly read string url" in {
     HttpUrlFormat.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(new URL("https://127.0.0.1"))

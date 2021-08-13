@@ -42,7 +42,7 @@ class TransmissionRequestProcessingJob @Inject()(
   override def process(item: TransmissionRequestEnvelope,
                        nextRetryTime: DateTime,
                        timeToGiveUp: DateTime): Future[ProcessingResult] = {
-    implicit val hc = HeaderCarrier()
+    implicit val hc: HeaderCarrier = HeaderCarrier()
     val now = clock.instant
 
     for (result <- mdgConnector.requestTransmission(item.request)) yield {
@@ -73,11 +73,11 @@ class TransmissionRequestProcessingJob @Inject()(
   private def logIfDeliveryWindowHasExpired(envelope: TransmissionRequestEnvelope,
                                             now: java.time.Instant,
                                             timeToGiveUp: java.time.Instant,
-                                            error: Option[Throwable] = None): Unit = {
+                                            error: Option[String]): Unit = {
     if (now.isAfter(timeToGiveUp)) {
 
       val newFailedDeliveryAttempt: Option[FailedDeliveryAttempt] = error.map {
-        ex => new FailedDeliveryAttempt(now, ex.getMessage)
+        error => new FailedDeliveryAttempt(now, error)
       }
 
       val updatedDeliveryAttempts: Seq[FailedDeliveryAttempt] = envelope.deliveryAttempts ++ newFailedDeliveryAttempt

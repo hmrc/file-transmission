@@ -24,6 +24,6 @@ import scala.concurrent.Future
 trait CallbackSender {
   def sendSuccessfulCallback(request: TransmissionRequest)(implicit hc: HeaderCarrier): Future[Unit]
 
-  def sendFailedCallback(request: TransmissionRequest, reason: Throwable)(implicit hc: HeaderCarrier): Future[Unit]
+  def sendFailedCallback(request: TransmissionRequest, reason: String)(implicit hc: HeaderCarrier): Future[Unit]
 
 }

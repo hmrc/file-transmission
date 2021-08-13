@@ -19,9 +19,9 @@ package uk.gov.hmrc.filetransmission.controllers
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito
-import org.scalatest.{Matchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.{Mockito, MockitoSugar}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.{FakeRequest, Helpers}
@@ -36,7 +36,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import play.api.test.Helpers._
 
-class TransmissionRequestControllerSpec extends WordSpec with Matchers with MockitoSugar {
+class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with MockitoSugar {
 
   implicit val actorSystem = ActorSystem()
 
