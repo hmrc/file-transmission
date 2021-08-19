@@ -140,7 +140,7 @@ class TransmissionRequestWorkItemRepositoryISpec
   private def validateDeliveryAttempt(da: FailedDeliveryAttempt,
                                       testStart: java.time.Instant,
                                       testEnd: java.time.Instant): Unit = {
-    da.failureReason shouldBe "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''"
+    da.failureReason shouldBe "POST of 'http://localhost:11111/mdg' returned status 503. Response body: ''"
     da.time.isAfter(testStart) shouldBe true
     da.time.isBefore(testEnd) shouldBe true
   }

@@ -110,7 +110,7 @@ class FileTransmissionAcceptanceTests
       And(
         "consuming service should receive notification that the request processing failed")
       verifyConsumingServiceReceivesFailureCallback(
-        "POST of 'http://localhost:11111/mdg' returned 400 (Bad Request). Response body ''")
+        "POST of 'http://localhost:11111/mdg' returned status 400. Response body: ''")
 
       And("MDG was called once and only once")
       mdgServer.verify(1, postRequestedFor(urlEqualTo("/mdg")))
@@ -164,7 +164,7 @@ class FileTransmissionAcceptanceTests
       And(
         "consuming service should receive confirmation that the request processing has failed")
       verifyConsumingServiceReceivesFailureCallback(
-        "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''",
+        "POST of 'http://localhost:11111/mdg' returned status 503. Response body: ''",
         timeout = 8 seconds)
     }
 
@@ -190,7 +190,7 @@ class FileTransmissionAcceptanceTests
       And(
         "consuming service should receive confirmation that the request processing has failed")
       verifyConsumingServiceReceivesFailureCallback(
-        "POST of 'http://localhost:11111/mdg' returned 503. Response body: ''")
+        "POST of 'http://localhost:11111/mdg' returned status 503. Response body: ''")
     }
 
     "reject invalid request" in {
