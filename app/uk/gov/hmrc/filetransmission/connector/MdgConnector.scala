@@ -72,12 +72,12 @@ class MdgConnector @Inject()(
         case s if Status.isClientError(s) =>
           logger.warn(
             s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [${response.body}]")
-          MdgRequestFatalError(response.body)
+          MdgRequestFatalError(s"POST of '${serviceConfiguration.mdgEndpoint}' returned status $s. Response body: '${response.body}'")
 
-        case _ =>
+        case s =>
           logger.warn(
             s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [${response.body}]")
-          MdgRequestError(response.body)
+          MdgRequestError(s"POST of '${serviceConfiguration.mdgEndpoint}' returned status $s. Response body: '${response.body}'")
       }
     }
   }
