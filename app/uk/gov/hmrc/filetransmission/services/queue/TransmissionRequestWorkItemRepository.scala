@@ -27,7 +27,6 @@ import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.mongo.workitem.{WorkItemFields, WorkItemRepository}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs
-import uk.gov.hmrc.mongo.transaction.{Transactions, TransactionConfiguration}
 import org.mongodb.scala.model.{Filters, Updates, FindOneAndUpdateOptions, ReturnDocument}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,7 +37,7 @@ object TransmissionRequestWorkItemRepository {
       id           = "_id",
       receivedAt   = "modifiedDetails.createdAt",
       updatedAt    = "modifiedDetails.lastUpdated",
-      availableAt  =  "modifiedDetails.availableAt",
+      availableAt  = "modifiedDetails.availableAt",
       status       = "status",
       failureCount = "failures",
       item         = "body"
@@ -56,9 +55,7 @@ class TransmissionRequestWorkItemRepository @Inject()(
       mongoComponent = mongoComponent,
       itemFormat     = TransmissionRequestEnvelope.transmissionRequestEnvelopeFormat,
       workItemFields = TransmissionRequestWorkItemRepository.workItemFields
-    ) with Transactions {
-
-  private implicit val tc = TransactionConfiguration.strict
+    ) {
 
   override def now(): Instant =
     Instant.now()
@@ -74,15 +71,12 @@ class TransmissionRequestWorkItemRepository @Inject()(
       .recover { case _ => false}
 
   def updateWorkItemBodyDeliveryAttempts(workItemId: ObjectId, body: TransmissionRequestEnvelope): Future[Boolean] =
-    withSessionAndTransaction { session =>
-      collection
-        .findOneAndUpdate(
-          clientSession = session
-        , filter        = Filters.equal("_id", workItemId)
-        , update        = Updates.set("body.deliveryAttempts", Codecs.toBson(body.deliveryAttempts))
-        , options       = FindOneAndUpdateOptions().upsert(false).returnDocument(ReturnDocument.AFTER)
-        )
-        .toFutureOption()
-        .map(_.isDefined)
-      }
+    collection
+      .findOneAndUpdate(
+        filter        = Filters.equal("_id", workItemId)
+      , update        = Updates.set("body.deliveryAttempts", Codecs.toBson(body.deliveryAttempts))
+      , options       = FindOneAndUpdateOptions().upsert(false).returnDocument(ReturnDocument.AFTER)
+      )
+      .toFutureOption()
+      .map(_.isDefined)
 }

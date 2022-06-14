@@ -21,7 +21,6 @@ import java.time.Instant
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, Json, __}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.filetransmission.utils.HttpUrlFormat
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.ContextExtractor
 
@@ -106,7 +105,7 @@ object TransmissionRequest {
 
 object FailedDeliveryAttempt {
   implicit val failedDeliveryFormat: Format[FailedDeliveryAttempt] =
-    ( (__ \ "time"         ).format[Instant](MongoJavatimeFormats.instantFormat)
+    ( (__ \ "time"         ).format[Instant] // formats as string
     ~ (__ \ "failureReason").format[String]
     )(FailedDeliveryAttempt.apply, unlift(FailedDeliveryAttempt.unapply))
 }
