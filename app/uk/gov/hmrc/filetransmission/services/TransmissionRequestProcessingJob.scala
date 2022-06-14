@@ -16,17 +16,15 @@
 
 package uk.gov.hmrc.filetransmission.services
 
-import org.joda.time.DateTime
 import play.api.Logger
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.connector.{MdgRequestSuccessful, _}
 import uk.gov.hmrc.filetransmission.model.{FailedDeliveryAttempt, TransmissionRequestEnvelope}
 import uk.gov.hmrc.filetransmission.services.queue._
-import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
 import uk.gov.hmrc.http.HeaderCarrier
 
-import java.time.Clock
+import java.time.{Clock, Instant}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,8 +38,8 @@ class TransmissionRequestProcessingJob @Inject()(
   private val logger = Logger(getClass)
 
   override def process(item: TransmissionRequestEnvelope,
-                       nextRetryTime: DateTime,
-                       timeToGiveUp: DateTime): Future[ProcessingResult] = {
+                       nextRetryTime: Instant,
+                       timeToGiveUp: Instant): Future[ProcessingResult] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
     val now = clock.instant
 
@@ -58,7 +56,7 @@ class TransmissionRequestProcessingJob @Inject()(
             callbackSender.sendFailedCallback(item.request, error)
             ProcessingFailedDoNotRetry(error)
           case MdgRequestError(error) => {
-            if (nextRetryTime < timeToGiveUp) {
+            if (nextRetryTime.isBefore(timeToGiveUp)) {
               ProcessingFailed(error)
             } else {
               callbackSender.sendFailedCallback(item.request, error)

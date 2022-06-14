@@ -21,15 +21,11 @@ import cats.implicits._
 import java.time.{Clock, Instant}
 
 import javax.inject.Inject
-import org.joda.time.DateTime
-import uk.gov.hmrc.workitem.{WorkItem, _}
 
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.workitem._
+import uk.gov.hmrc.mongo.workitem.{WorkItem, ResultStatus, ProcessingStatus}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.{FailedDeliveryAttempt, TransmissionRequestEnvelope}
-import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters.{ClockJodaExtensions, JodaDateTimeExtensions, toJoda}
-
 
 sealed trait ProcessingResult
 case object ProcessingSuccessful extends ProcessingResult
@@ -38,8 +34,8 @@ case class ProcessingFailedDoNotRetry(error: String) extends ProcessingResult
 
 trait QueueJob {
   def process(item: TransmissionRequestEnvelope,
-              nextRetryTime: DateTime,
-              timeToGiveUp: DateTime): Future[ProcessingResult]
+              nextRetryTime: Instant,
+              timeToGiveUp: Instant): Future[ProcessingResult]
 }
 
 trait WorkItemService {
@@ -80,12 +76,12 @@ class MongoBackedWorkItemService @Inject()(
 
   private def processWorkItem(
       workItem: WorkItem[TransmissionRequestEnvelope],
-      processedAt: Instant = clock.instant
+      processedAt: Instant = Instant.now(clock)
   ): Future[Unit] = {
 
     // Update the work item with the latest FailedDeliveryAttempt, then update the status.
     def updateStatusForFailedDeliveryAttempt(status: ResultStatus,
-                                             availableAt: Option[DateTime],
+                                             availableAt: Option[Instant],
                                              error: String): Future[Boolean] = {
       val updatedEnvelope = workItem.item.withFailedDeliveryAttempt(FailedDeliveryAttempt(processedAt, error))
 
@@ -97,40 +93,35 @@ class MongoBackedWorkItemService @Inject()(
 
     val request = workItem.item
 
-    val nextRetryTime: DateTime = nextAvailabilityTime(workItem)
+    val nextRetryTime: Instant = nextAvailabilityTime(workItem)
 
     for (processingResult <- queueJob.process(request, nextRetryTime, timeToGiveUp(workItem))) yield {
       processingResult match {
         case ProcessingSuccessful =>
-          repository.complete(workItem.id, Succeeded)
+          repository.complete(workItem.id, ProcessingStatus.Succeeded)
         case ProcessingFailed(error) =>
-          updateStatusForFailedDeliveryAttempt(Failed, Some(nextRetryTime), error)
+          updateStatusForFailedDeliveryAttempt(ProcessingStatus.Failed, Some(nextRetryTime), error)
         case ProcessingFailedDoNotRetry(error) =>
-          updateStatusForFailedDeliveryAttempt(PermanentlyFailed, None, error)
+          updateStatusForFailedDeliveryAttempt(ProcessingStatus.PermanentlyFailed, None, error)
       }
     }
   }
 
-  private def now(): DateTime = clock.nowAsJoda
+  private def now(): Instant = Instant.now(clock)
 
-  private def nextAvailabilityTime[T](workItem: WorkItem[T]): DateTime = {
-
-    val dateTimeNow = now()
-
+  private def nextAvailabilityTime[T](workItem: WorkItem[T]): Instant = {
+    val instantNow = now()
     val multiplier = Math.pow(2, workItem.failureCount).toInt
-    val delay = configuration.initialBackoffAfterFailure * multiplier
-
-    dateTimeNow + delay
+    val delay      = configuration.initialBackoffAfterFailure * multiplier
+    instantNow.plusMillis(delay.toMillis)
   }
 
-  private def timeToGiveUp(
-      workItem: WorkItem[TransmissionRequestEnvelope]): DateTime = {
-
+  private def timeToGiveUp(workItem: WorkItem[TransmissionRequestEnvelope]): Instant = {
     val deliveryWindowDuration =
       workItem.item.request.deliveryWindowDuration
         .getOrElse(configuration.defaultDeliveryWindowDuration)
 
-    workItem.receivedAt + deliveryWindowDuration
+    workItem.receivedAt.plusMillis(deliveryWindowDuration.toMillis)
   }
 
 }

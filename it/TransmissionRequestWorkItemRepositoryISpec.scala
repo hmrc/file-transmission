@@ -1,10 +1,25 @@
+/*
+ * Copyright 2022 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import java.net.URL
 import java.time.Instant
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import org.joda.time.{Instant => JodaInstant}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -15,10 +30,10 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.filetransmission.services.queue.{MongoBackedWorkItemService, TransmissionRequestWorkItemRepository}
-import uk.gov.hmrc.workitem.WorkItem
+import uk.gov.hmrc.mongo.workitem.WorkItem
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class TransmissionRequestWorkItemRepositoryISpec
     extends AnyWordSpec
@@ -107,7 +122,7 @@ class TransmissionRequestWorkItemRepositoryISpec
 
       And("the request is added to the work item queue")
       val workItem: WorkItem[TransmissionRequestEnvelope] =
-        testInstance.pushNew(envelope, JodaInstant.now.toDateTime()).futureValue
+        testInstance.pushNew(envelope, Instant.now()).futureValue
 
       When(
         "the request is processed twice (both attempts with failed delivery to MDG)")

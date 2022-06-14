@@ -26,6 +26,7 @@ import org.xml.sax.SAXParseException
 import uk.gov.hmrc.filetransmission.model._
 
 import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.Try
 import scala.xml.Elem
 import scala.xml.factory.XMLLoader
@@ -165,7 +166,7 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
 
 
     "does not add whitespace to long fields" in {
-      val longFilename = 'a'.to(200) + ".pdf"
+      val longFilename = "a" * 200 + ".pdf"
       val request = TransmissionRequest(
         Batch("A", 10),
         Interface("J", "1.0"),

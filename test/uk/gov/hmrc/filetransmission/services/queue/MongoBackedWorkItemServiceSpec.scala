@@ -16,36 +16,33 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 
-import java.time.{Clock, Instant, ZoneId}
-import java.time.temporal.ChronoUnit
-
-import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentCaptor, ArgumentMatchers, Mockito, MockitoSugar}
+import org.bson.types.ObjectId
+import org.mockito.{ArgumentCaptor, Mockito, MockitoSugar, ArgumentMatchersSugar}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, GivenWhenThen}
-import reactivemongo.bson.BSONObjectID
+
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
-import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters.{ClockJodaExtensions, fromJoda}
 import uk.gov.hmrc.filetransmission.utils.SampleTransmissionRequest
-import uk.gov.hmrc.workitem
-import uk.gov.hmrc.workitem._
+import uk.gov.hmrc.mongo.workitem.{WorkItem, ProcessingStatus}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import java.time.{Clock, Instant, ZoneId}
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class MongoBackedWorkItemServiceSpec
   extends AnyWordSpec
     with Matchers
     with GivenWhenThen
     with MockitoSugar
+    with ArgumentMatchersSugar
     with BeforeAndAfterEach
     with ScalaFutures {
+
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   val configuration: ServiceConfiguration = mock[ServiceConfiguration]
 
@@ -54,14 +51,13 @@ class MongoBackedWorkItemServiceSpec
     interval = scaled(Span(150, Millis))
   )
 
-  override def beforeEach() {
+  override def beforeEach() = {
     when(configuration.initialBackoffAfterFailure).thenReturn(10.seconds)
     when(configuration.defaultDeliveryWindowDuration).thenReturn(10.minutes)
   }
 
   "MongoBackedWorkItemService" should {
     "allow to enqueue new transmission request to the queue" in {
-
       val repository = mock[TransmissionRequestWorkItemRepository]
       val job = mock[QueueJob]
       val clock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
@@ -71,13 +67,9 @@ class MongoBackedWorkItemServiceSpec
       val envelope =
         TransmissionRequestEnvelope(sampleRequest, "consumingService")
 
-      when(
-        repository.pushNew(
-          any[TransmissionRequestEnvelope](),
-          any())(any[ExecutionContext]))
+      when(repository.pushNew(any[TransmissionRequestEnvelope], any, any[TransmissionRequestEnvelope => ProcessingStatus]))
         .thenReturn(Future.successful(createWorkItem(envelope)))
-
-      when(repository.updateWorkItemBodyDeliveryAttempts(any[BSONObjectID], any[TransmissionRequestEnvelope]))
+      when(repository.updateWorkItemBodyDeliveryAttempts(any[ObjectId], any[TransmissionRequestEnvelope]))
         .thenReturn(Future.successful(true))
 
       val service =
@@ -89,7 +81,7 @@ class MongoBackedWorkItemServiceSpec
       Then("the request has been stored to MongoDB queue")
       Mockito
         .verify(repository)
-        .pushNew(envelope, clock.nowAsJoda)
+        .pushNew(eqTo(envelope), any[Instant], any[TransmissionRequestEnvelope => ProcessingStatus])
 
     }
 
@@ -102,17 +94,14 @@ class MongoBackedWorkItemServiceSpec
       val service =
         new MongoBackedWorkItemService(repository, job, configuration, clock)
 
-      when(
-        repository.pullOutstanding(
-          any(),
-          any())(any[ExecutionContext]))
+      when(repository.pullOutstanding(any, any))
         .thenReturn(Future.successful(None))
 
       When("requested processing next item from the queue")
       val moreItems = service.processOne().futureValue
 
       Then("nothing was processed")
-      Mockito.verifyZeroInteractions(job)
+      Mockito.verifyNoInteractions(job)
 
       And("the service responded that the queue is empty")
       moreItems shouldBe false
@@ -134,24 +123,21 @@ class MongoBackedWorkItemServiceSpec
 
       val workItem = createWorkItem(envelope)
 
-      when(
-        repository.pullOutstanding(
-          any(),
-          any())(any[ExecutionContext]))
+      when(repository.pullOutstanding(any, any))
         .thenReturn(Future.successful(Some(workItem)))
 
       And("processing for this item ends with success")
-      when(job.process(any(), any(), any()))
+      when(job.process(any, any, any))
         .thenReturn(Future.successful(ProcessingSuccessful))
 
       When("requested processing next item from the queue")
       val moreItems = service.processOne().futureValue
 
       Then("the item has been processed (and we assume we can retry it)")
-      Mockito.verify(job).process(ArgumentMatchers.eq(envelope), any(), any())
+      Mockito.verify(job).process(eqTo(envelope), any, any)
 
       And("item has been marked as done in the database")
-      Mockito.verify(repository).complete(workItem.id, Succeeded)
+      Mockito.verify(repository).complete(workItem.id, ProcessingStatus.Succeeded)
 
       And("the service responded that the queue wasn't empty")
       moreItems shouldBe true
@@ -175,20 +161,16 @@ class MongoBackedWorkItemServiceSpec
 
       val workItem = createWorkItem(envelope, retrySoFar = triesSoFar)
 
-      when(
-        repository.pullOutstanding(
-          any(),
-          any())(any[ExecutionContext]))
+      when(repository.pullOutstanding(any, any))
         .thenReturn(Future.successful(Some(workItem)))
-
-      when(repository.markAs(any[BSONObjectID], any[ProcessingStatus], any[Option[DateTime]])(any[ExecutionContext]))
-          .thenReturn(Future.successful(true))
-      when(repository.updateWorkItemBodyDeliveryAttempts(any[BSONObjectID], any[TransmissionRequestEnvelope]))
+      when(repository.markAs(any[ObjectId], any[ProcessingStatus], any[Option[Instant]]))
+        .thenReturn(Future.successful(true))
+      when(repository.updateWorkItemBodyDeliveryAttempts(any[ObjectId], any[TransmissionRequestEnvelope]))
         .thenReturn(Future.successful(true))
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(any(), any(), any()))
+      when(job.process(any, any, any))
         .thenReturn(Future.successful(
           ProcessingFailed("client error")))
 
@@ -196,18 +178,20 @@ class MongoBackedWorkItemServiceSpec
       val moreItems = service.processOne().futureValue
 
       And("item has been marked as failed in the database")
-      val retryTimeCaptor: ArgumentCaptor[Option[DateTime]] =
-        ArgumentCaptor.forClass(classOf[Option[DateTime]])
+      val retryTimeCaptor: ArgumentCaptor[Option[Instant]] =
+        ArgumentCaptor.forClass(classOf[Option[Instant]])
       Mockito
         .verify(repository)
-        .markAs(ArgumentMatchers.eq(workItem.id),
-                ArgumentMatchers.eq(Failed),
-                retryTimeCaptor.capture())(any())
+        .markAs(
+          eqTo(workItem.id),
+          eqTo(ProcessingStatus.Failed),
+          retryTimeCaptor.capture()
+        )
 
       And("retry time is 10.seconds * 2 ^ tries so far = 10 * 4 = 40s")
       val retryTime: Instant = retryTimeCaptor.getValue.get
 
-      val retryDuration = java.time.Duration.between(clock.instant().truncatedTo(ChronoUnit.MILLIS), retryTime)
+      val retryDuration = java.time.Duration.between(clock.instant(), retryTime)
 
       retryDuration shouldBe java.time.Duration.ofSeconds(40)
 
@@ -232,20 +216,16 @@ class MongoBackedWorkItemServiceSpec
 
       val workItem = createWorkItem(envelope)
 
-      when(
-        repository.pullOutstanding(
-          any(),
-          any())(any[ExecutionContext]))
+      when(repository.pullOutstanding(any, any))
         .thenReturn(Future.successful(Some(workItem)))
-
-      when(repository.markAs(any[BSONObjectID], any[ProcessingStatus], any[Option[DateTime]])(any[ExecutionContext]))
+      when(repository.markAs(any[ObjectId], any[ProcessingStatus], any[Option[Instant]]))
         .thenReturn(Future.successful(true))
-      when(repository.updateWorkItemBodyDeliveryAttempts(any[BSONObjectID], any[TransmissionRequestEnvelope]))
+      when(repository.updateWorkItemBodyDeliveryAttempts(any[ObjectId], any[TransmissionRequestEnvelope]))
         .thenReturn(Future.successful(true))
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(any(), any(), any()))
+      when(job.process(any, any, any))
         .thenReturn(Future.successful(
           ProcessingFailedDoNotRetry("client error")))
 
@@ -253,7 +233,7 @@ class MongoBackedWorkItemServiceSpec
       val moreItems = service.processOne().futureValue
 
       And("item has been marked as permanently failed in the database")
-      Mockito.verify(repository).markAs(workItem.id, PermanentlyFailed, None)
+      Mockito.verify(repository).markAs(workItem.id, ProcessingStatus.PermanentlyFailed, None)
 
       And("the service responded that the queue wasn't empty")
       moreItems shouldBe true
@@ -276,20 +256,16 @@ class MongoBackedWorkItemServiceSpec
 
       val workItem = createWorkItem(envelope)
 
-      when(
-        repository.pullOutstanding(
-          any(),
-          any())(any[ExecutionContext]))
+      when(repository.pullOutstanding(any, any))
         .thenReturn(Future.successful(Some(workItem)))
-
-      when(repository.markAs(any[BSONObjectID], any[ProcessingStatus], any[Option[DateTime]])(any[ExecutionContext]))
+      when(repository.markAs(any[ObjectId], any[ProcessingStatus], any[Option[Instant]]))
         .thenReturn(Future.successful(true))
-      when(repository.updateWorkItemBodyDeliveryAttempts(any[BSONObjectID], any[TransmissionRequestEnvelope]))
+      when(repository.updateWorkItemBodyDeliveryAttempts(any[ObjectId], any[TransmissionRequestEnvelope]))
         .thenReturn(Future.successful(true))
 
       And(
         "processing for this item ends with failure for which we don't want to retry")
-      when(job.process(any(), any(), any()))
+      when(job.process(any, any, any))
         .thenReturn(Future.successful(
           ProcessingFailedDoNotRetry("client error")))
 
@@ -297,7 +273,7 @@ class MongoBackedWorkItemServiceSpec
       val moreItems = service.processOne().futureValue
 
       And("item has been marked as permanently failed in the database")
-      Mockito.verify(repository).markAs(workItem.id, PermanentlyFailed, None)
+      Mockito.verify(repository).markAs(workItem.id, ProcessingStatus.PermanentlyFailed, None)
 
       And("the service responded that the queue wasn't empty")
       moreItems shouldBe true
@@ -306,14 +282,14 @@ class MongoBackedWorkItemServiceSpec
 
     def createWorkItem(
         request: TransmissionRequestEnvelope,
-        creationTime: DateTime = DateTime.now(),
+        creationTime: Instant = Instant.now(),
         retrySoFar: Int = 0): WorkItem[TransmissionRequestEnvelope] =
       WorkItem(
-        BSONObjectID.generate(),
+        ObjectId.get(),
         creationTime,
-        DateTime.now(),
-        DateTime.now(),
-        workitem.ToDo,
+        Instant.now(),
+        Instant.now(),
+        ProcessingStatus.ToDo,
         retrySoFar,
         request
       )

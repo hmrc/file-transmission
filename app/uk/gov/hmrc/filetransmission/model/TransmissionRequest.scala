@@ -20,7 +20,8 @@ import java.net.URL
 import java.time.Instant
 
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{Format, JsPath, Json}
+import play.api.libs.json.{Format, Json, __}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.filetransmission.utils.HttpUrlFormat
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.ContextExtractor
 
@@ -85,15 +86,14 @@ object TransmissionRequest {
   val timeInSecondsFormat: Format[FiniteDuration] =
     implicitly[Format[Int]].inmap(_.seconds, _.toSeconds.toInt)
 
-  implicit val transmissionRequestReads: Format[TransmissionRequest] = (
-    (JsPath \ "batch").format[Batch] and
-      (JsPath \ "interface").format[Interface] and
-      (JsPath \ "file").format[File] and
-      (JsPath \ "properties").format[Seq[Property]] and
-      (JsPath \ "callbackUrl").format[URL] and
-      (JsPath \ "deliveryWindowDurationInSeconds").formatNullable(
-        timeInSecondsFormat)
-  )(TransmissionRequest.apply, unlift(TransmissionRequest.unapply))
+  implicit val transmissionRequestReads: Format[TransmissionRequest] =
+    ( (__ \ "batch"                          ).format[Batch]
+    ~ (__ \ "interface"                      ).format[Interface]
+    ~ (__ \ "file"                           ).format[File]
+    ~ (__ \ "properties"                     ).format[Seq[Property]]
+    ~ (__ \ "callbackUrl"                    ).format[URL]
+    ~ (__ \ "deliveryWindowDurationInSeconds").formatNullable(timeInSecondsFormat)
+    )(TransmissionRequest.apply, unlift(TransmissionRequest.unapply))
 
   implicit val requestExtractor = new ContextExtractor[TransmissionRequest] {
     override def extract(request: TransmissionRequest): Map[String, String] =
@@ -105,11 +105,16 @@ object TransmissionRequest {
 }
 
 object FailedDeliveryAttempt {
-  implicit val failedDeliveryFormat = Json.format[FailedDeliveryAttempt]
+  implicit val failedDeliveryFormat: Format[FailedDeliveryAttempt] =
+    ( (__ \ "time"         ).format[Instant](MongoJavatimeFormats.instantFormat)
+    ~ (__ \ "failureReason").format[String]
+    )(FailedDeliveryAttempt.apply, unlift(FailedDeliveryAttempt.unapply))
 }
 
 object TransmissionRequestEnvelope {
-  implicit val transmissionRequestEnvelopeFormat
-    : Format[TransmissionRequestEnvelope] =
-    Json.format[TransmissionRequestEnvelope]
+  implicit val transmissionRequestEnvelopeFormat: Format[TransmissionRequestEnvelope] =
+    ( (__ \ "request"         ).format[TransmissionRequest]
+    ~ (__ \ "serviceName"     ).format[String]
+    ~ (__ \ "deliveryAttempts").format[Seq[FailedDeliveryAttempt]]
+    )(TransmissionRequestEnvelope.apply, unlift(TransmissionRequestEnvelope.unapply))
 }
