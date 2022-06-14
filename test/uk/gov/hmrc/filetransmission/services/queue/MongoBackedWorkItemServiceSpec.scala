@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
  */
 
 package uk.gov.hmrc.filetransmission.services.queue
+
 import java.time.{Clock, Instant, ZoneId}
+import java.time.temporal.ChronoUnit
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
@@ -205,7 +207,7 @@ class MongoBackedWorkItemServiceSpec
       And("retry time is 10.seconds * 2 ^ tries so far = 10 * 4 = 40s")
       val retryTime: Instant = retryTimeCaptor.getValue.get
 
-      val retryDuration = java.time.Duration.between(clock.instant(), retryTime)
+      val retryDuration = java.time.Duration.between(clock.instant().truncatedTo(ChronoUnit.MILLIS), retryTime)
 
       retryDuration shouldBe java.time.Duration.ofSeconds(40)
 
