@@ -17,9 +17,7 @@
 package uk.gov.hmrc.filetransmission.controllers
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import org.mockito.ArgumentMatchers.any
-import org.mockito.{Mockito, MockitoSugar}
+import org.mockito.{Mockito, MockitoSugar, ArgumentMatchersSugar}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status
@@ -36,11 +34,9 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import play.api.test.Helpers._
 
-class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with MockitoSugar {
+class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with ArgumentMatchersSugar{
 
   implicit val actorSystem = ActorSystem()
-
-  implicit val materializer = ActorMaterializer()
 
   //implicit val timeout: akka.util.Timeout = 10.seconds
 
@@ -122,7 +118,7 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
         .withBody(validRequestBody)
 
       Mockito
-        .when(transmissionQueue.enqueue(any()))
+        .when(transmissionQueue.enqueue(any))
         .thenReturn(Future.successful((): Unit))
 
       Mockito
@@ -131,7 +127,7 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
         .thenReturn(Future.successful(TransmissionSuccess))
 
       val requestValidator: RequestValidator = mock[RequestValidator]
-      Mockito.when(requestValidator.validate(any())).thenReturn(Right(()))
+      Mockito.when(requestValidator.validate(any)).thenReturn(Right(()))
 
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,
@@ -152,7 +148,7 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
         .withBody(Json.obj("invalid" -> "value"))
 
       val requestValidator: RequestValidator = mock[RequestValidator]
-      Mockito.when(requestValidator.validate(any())).thenReturn(Right(()))
+      Mockito.when(requestValidator.validate(any)).thenReturn(Right(()))
 
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,
@@ -173,7 +169,7 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
         .withBody(requestBodyWithInvalidCallbackUrl)
 
       val requestValidator: RequestValidator = mock[RequestValidator]
-      Mockito.when(requestValidator.validate(any())).thenReturn(Right(()))
+      Mockito.when(requestValidator.validate(any)).thenReturn(Right(()))
 
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,
@@ -195,7 +191,7 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
 
       val requestValidator: RequestValidator = mock[RequestValidator]
       Mockito
-        .when(requestValidator.validate(any()))
+        .when(requestValidator.validate(any))
         .thenReturn(Left("InvalidRequest"))
 
       val controller = new TransmissionRequestController(transmissionQueue,
@@ -218,7 +214,7 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
         .withBody(validRequestBody)
 
       val requestValidator: RequestValidator = mock[RequestValidator]
-      Mockito.when(requestValidator.validate(any())).thenReturn(Right(()))
+      Mockito.when(requestValidator.validate(any)).thenReturn(Right(()))
 
       val controller = new TransmissionRequestController(transmissionQueue,
                                                          transmissionService,

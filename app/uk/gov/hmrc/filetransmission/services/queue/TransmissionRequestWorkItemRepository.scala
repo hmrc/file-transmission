@@ -16,100 +16,67 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 
-import java.time.Clock
+import java.time.{Clock, Instant}
 
 import com.typesafe.config.Config
-import javax.inject.Inject
-import org.joda.time.{DateTime, Duration}
-import play.api.libs.functional.syntax.{unlift, _}
-import play.api.libs.json.{Format, Json, Reads, __}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.BSONObjectIDFormat
-import reactivemongo.play.json.ImplicitBSONHandlers._
+import javax.inject.{Inject, Singleton}
+import org.bson.types.ObjectId
+
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
-import uk.gov.hmrc.filetransmission.utils.JodaTimeConverters._
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.workitem.{WorkItem, _}
+import uk.gov.hmrc.mongo.workitem.{WorkItemFields, WorkItemRepository}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.Codecs
+import org.mongodb.scala.model.{Filters, Updates, FindOneAndUpdateOptions, ReturnDocument}
 
 import scala.concurrent.{ExecutionContext, Future}
 
+object TransmissionRequestWorkItemRepository {
+  lazy val workItemFields =
+    WorkItemFields(
+      id           = "_id",
+      receivedAt   = "modifiedDetails.createdAt",
+      updatedAt    = "modifiedDetails.lastUpdated",
+      availableAt  = "modifiedDetails.availableAt",
+      status       = "status",
+      failureCount = "failures",
+      item         = "body"
+    )
+}
+
+@Singleton
 class TransmissionRequestWorkItemRepository @Inject()(
-    mongoComponent: ReactiveMongoComponent,
+    val mongoComponent: MongoComponent,
     configuration: ServiceConfiguration,
     clock: Clock,
     config: Config)(implicit ec: ExecutionContext)
-    extends WorkItemRepository[TransmissionRequestEnvelope, BSONObjectID](
+    extends WorkItemRepository[TransmissionRequestEnvelope](
       collectionName = "transmission-request",
-      mongo = mongoComponent.mongoConnector.db,
-      itemFormat = WorkItemFormat.workItemMongoFormat[TransmissionRequestEnvelope],
-      config = config
+      mongoComponent = mongoComponent,
+      itemFormat     = TransmissionRequestEnvelope.transmissionRequestEnvelopeFormat,
+      workItemFields = TransmissionRequestWorkItemRepository.workItemFields
     ) {
 
-  override def now: DateTime = clock.nowAsJoda
+  override def now(): Instant =
+    Instant.now()
 
-  override def inProgressRetryAfterProperty: String =
-    ??? // we don't use this, we override inProgressRetryAfter instead
+  override val inProgressRetryAfter =
+    java.time.Duration.ofNanos(configuration.inFlightLockDuration.toNanos)
 
-  override lazy val inProgressRetryAfter: Duration =
-    Duration.millis(configuration.inFlightLockDuration.toMillis)
+  def clearRequestQueue(): Future[Boolean] =
+    collection
+      .drop()
+      .toFuture()
+      .map(_ => true)
+      .recover { case _ => false}
 
-  override def workItemFields = new WorkItemFieldNames {
-    val receivedAt = "modifiedDetails.createdAt"
-    val updatedAt = "modifiedDetails.lastUpdated"
-    val availableAt = "modifiedDetails.availableAt"
-    val status = "status"
-    val id = "_id"
-    val failureCount = "failures"
-  }
-
-  def clearRequestQueue(): Future[Boolean] = {
-    collection.drop(failIfNotFound = false)
-  }
-
-  def updateWorkItemBodyDeliveryAttempts(workItemId: BSONObjectID,
-                                         body: TransmissionRequestEnvelope): Future[Boolean] = {
-    val selector = Json.obj(workItemFields.id -> workItemId)
-
-    val updater  = Json.obj("$set" -> Json.obj("body.deliveryAttempts" -> body.deliveryAttempts))
-
-    collection.update(ordered = false).one(selector, updater).map(_.n > 0)
-  }
-}
-
-object WorkItemFormat {
-
-  def workItemMongoFormat[T](implicit tFormat: Format[T]): Format[WorkItem[T]] =
-    ReactiveMongoFormats.mongoEntity(
-      ticketFormat(ReactiveMongoFormats.objectIdFormats,
-                   ReactiveMongoFormats.dateTimeFormats,
-                   tFormat))
-
-  private def ticketFormat[T](implicit bsonIdFormat: Format[BSONObjectID],
-                              dateTimeFormat: Format[DateTime],
-                              tFormat: Format[T]): Format[WorkItem[T]] = {
-    val reads = (
-      (__ \ "id").read[BSONObjectID] and
-        (__ \ "modifiedDetails" \ "createdAt").read[DateTime] and
-        (__ \ "modifiedDetails" \ "lastUpdated").read[DateTime] and
-        (__ \ "modifiedDetails" \ "availableAt").read[DateTime] and
-        (__ \ "status").read[uk.gov.hmrc.workitem.ProcessingStatus] and
-        (__ \ "failures").read[Int].orElse(Reads.pure(0)) and
-        (__ \ "body").read[T]
-    )(WorkItem.apply[T] _)
-
-    val writes = (
-      (__ \ "id").write[BSONObjectID] and
-        (__ \ "modifiedDetails" \ "createdAt").write[DateTime] and
-        (__ \ "modifiedDetails" \ "lastUpdated").write[DateTime] and
-        (__ \ "modifiedDetails" \ "availableAt").write[DateTime] and
-        (__ \ "status").write[uk.gov.hmrc.workitem.ProcessingStatus] and
-        (__ \ "failures").write[Int] and
-        (__ \ "body").write[T]
-    )(unlift(WorkItem.unapply[T]))
-
-    Format(reads, writes)
-  }
-
+  def updateWorkItemBodyDeliveryAttempts(workItemId: ObjectId, body: TransmissionRequestEnvelope): Future[Boolean] =
+    collection
+      .findOneAndUpdate(
+        filter        = Filters.equal("_id", workItemId)
+      , update        = Updates.set("body.deliveryAttempts", Codecs.toBson(body.deliveryAttempts))
+      , options       = FindOneAndUpdateOptions().upsert(false).returnDocument(ReturnDocument.AFTER)
+      )
+      .toFutureOption()
+      .map(_.isDefined)
 }
