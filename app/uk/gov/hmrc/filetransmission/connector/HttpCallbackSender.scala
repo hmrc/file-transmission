@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,18 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
 
   private val logger = Logger(getClass)
 
-  case class SuccessfulCallback(fileReference: String, batchId: String, outcome: String = "SUCCESS")
-  case class FailureCallback(fileReference: String, batchId: String, outcome: String    = "FAILURE", errorDetails: String)
+  case class SuccessfulCallback(
+    fileReference: String,
+    batchId      : String,
+    outcome      : String = "SUCCESS"
+  )
+
+  case class FailureCallback(
+    fileReference: String,
+    batchId      : String,
+    outcome      : String = "FAILURE",
+    errorDetails : String
+  )
 
   implicit val successfulCallback: Writes[SuccessfulCallback] = Json.writes[SuccessfulCallback]
 
@@ -40,44 +50,47 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
   implicit val legacyRawReads: HttpReads[HttpResponse] = HttpReads.Implicits.throwOnFailure(HttpReads.Implicits.readEitherOf(HttpReads.Implicits.readRaw))
 
   override def sendSuccessfulCallback(request: TransmissionRequest)(implicit hc: HeaderCarrier): Future[Unit] = {
-
-    val callback = SuccessfulCallback(fileReference = request.file.reference, batchId = request.batch.id)
+    val callback = SuccessfulCallback(
+      fileReference = request.file.reference,
+      batchId       = request.batch.id
+    )
 
     httpClient
       .POST[SuccessfulCallback, HttpResponse](request.callbackUrl.toString, callback)
-      .map { response =>
+      .map(response =>
         withLoggedContext(request) {
           logger.info(s"""Response from: [${request.callbackUrl}], to delivery successful callback: [$callback], was: [${response.status}].""")
         }
-      } recoverWith {
-      case t: Throwable =>
-        withLoggedContext(request) {
-          logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}], for request: [$request].", t)
-          Future.failed(t)
-        }
-    }
+      )
+      .recoverWith {
+        case t: Throwable =>
+          withLoggedContext(request) {
+            logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}].", t)
+            Future.failed(t)
+          }
+      }
   }
 
-  override def sendFailedCallback(request: TransmissionRequest, reason: String)(
-    implicit hc: HeaderCarrier): Future[Unit] = {
-
+  override def sendFailedCallback(request: TransmissionRequest, reason: String)(implicit hc: HeaderCarrier): Future[Unit] = {
     val callback = FailureCallback(
       fileReference = request.file.reference,
       batchId       = request.batch.id,
-      errorDetails  = reason)
+      errorDetails  = reason
+    )
 
     httpClient
       .POST[FailureCallback, HttpResponse](request.callbackUrl.toString, callback)
-      .map { response =>
+      .map(response =>
         withLoggedContext(request) {
           logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [$callback], was: [${response.status}].")
         }
-      } recoverWith  {
-      case t: Throwable =>
-        withLoggedContext(request) {
-          logger.error(s"""Failed to send delivery failure callback to: [${request.callbackUrl}], for request: [$request].""", t)
-          Future.failed(t)
-        }
-    }
+      )
+      .recoverWith  {
+        case t: Throwable =>
+          withLoggedContext(request) {
+            logger.error(s"""Failed to send delivery failure callback to: [${request.callbackUrl}].""", t)
+            Future.failed(t)
+          }
+      }
   }
 }
