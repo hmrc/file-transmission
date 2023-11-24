@@ -18,8 +18,8 @@ package uk.gov.hmrc.filetransmission.services.queue
 
 import java.util.concurrent.{Executors, TimeUnit}
 
-import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
-import akka.event.Logging
+import org.apache.pekko.actor.{Actor, ActorSystem, PoisonPill, Props}
+import org.apache.pekko.event.Logging
 import javax.inject.Inject
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration

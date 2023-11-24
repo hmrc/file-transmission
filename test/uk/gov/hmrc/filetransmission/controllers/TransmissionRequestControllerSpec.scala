@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.filetransmission.controllers
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import org.mockito.{Mockito, MockitoSugar, ArgumentMatchersSugar}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -38,7 +38,7 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
 
   implicit val actorSystem = ActorSystem()
 
-  //implicit val timeout: akka.util.Timeout = 10.seconds
+  //implicit val timeout: org.apache.pekko.util.Timeout = 10.seconds
 
   val serviceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = Seq("VALID-AGENT")

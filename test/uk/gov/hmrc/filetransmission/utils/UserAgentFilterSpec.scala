@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.filetransmission.utils
 
-import akka.util.Timeout
+import org.apache.pekko.util.Timeout
 import org.mockito.{Mockito, MockitoSugar}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers

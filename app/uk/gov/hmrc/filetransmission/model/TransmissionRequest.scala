@@ -94,7 +94,7 @@ object TransmissionRequest {
     ~ (__ \ "deliveryWindowDurationInSeconds").formatNullable(timeInSecondsFormat)
     )(TransmissionRequest.apply, unlift(TransmissionRequest.unapply))
 
-  implicit val requestExtractor = new ContextExtractor[TransmissionRequest] {
+  implicit val requestExtractor: ContextExtractor[TransmissionRequest] = new ContextExtractor[TransmissionRequest] {
     override def extract(request: TransmissionRequest): Map[String, String] =
       Map(
         "file-reference" -> request.file.reference,

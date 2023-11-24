@@ -15,7 +15,7 @@
  */
 
 package uk.gov.hmrc.filetransmission.services.queue
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import org.mockito.MockitoSugar
 import org.scalatest.GivenWhenThen
 import org.scalatest.concurrent.Eventually
