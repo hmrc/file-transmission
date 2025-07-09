@@ -47,22 +47,21 @@ class FileTransmissionAcceptanceTests
     with BeforeAndAfterEach
     with Eventually {
 
-  override implicit lazy val app: Application = new GuiceApplicationBuilder()
+  override lazy val app: Application = GuiceApplicationBuilder()
     .configure(
-      "application.router" -> "testOnlyDoNotUseInAppConf.Routes",
-      "userAgentFilter.allowedUserAgents" -> "PrepareUploadControllerISpec",
-      "auditing.enabled" -> "false",
-      "mdg.endpoint" -> "http://localhost:11111/mdg",
+      "application.router"                  -> "testOnlyDoNotUseInAppConf.Routes",
+      "userAgentFilter.allowedUserAgents"   -> "PrepareUploadControllerISpec",
+      "auditing.enabled"                    -> "false",
+      "mdg.endpoint"                        -> "http://localhost:11111/mdg",
       "callbackValidation.allowedProtocols" -> "http",
-      "initialBackoffAfterFailure" -> "75 milliseconds",
-      "deliveryWindowDuration" -> "15 seconds",
-      "metrics.jvm" -> "false"
+      "initialBackoffAfterFailure"          -> "75 milliseconds",
+      "deliveryWindowDuration"              -> "15 seconds"
     )
     .build()
 
-  val mdgServer = new WireMockServer(wireMockConfig().port(11111))
+  val mdgServer = WireMockServer(wireMockConfig().port(11111))
 
-  val consumingServiceServer = new WireMockServer(wireMockConfig().port(11112))
+  val consumingServiceServer = WireMockServer(wireMockConfig().port(11112))
 
   override def beforeAll() = {
     super.beforeAll()
@@ -238,11 +237,10 @@ class FileTransmissionAcceptanceTests
 
   private def withRequiredMdgHeaders(input: RequestPatternBuilder) =
     input
-      .withHeader("X-Correlation-ID", new AnythingPattern())
-      .withHeader("Authorization", equalTo("Bearer mockToken"))
-      .withHeader("Content-Type",
-                  equalToIgnoreCase("application/xml; charset=UTF-8"))
-      .withHeader("Accept", equalTo("application/xml"))
+      .withHeader("X-Correlation-ID", AnythingPattern())
+      .withHeader("Authorization"   , equalTo("Bearer mockToken"))
+      .withHeader("Content-Type"    , equalToIgnoreCase("application/xml; charset=UTF-8"))
+      .withHeader("Accept"          , equalTo("application/xml"))
 
   private def verifyMdgReceivedRequest =
     buildAndVerifyMdgReceivedRequest {
@@ -427,6 +425,6 @@ class FileTransmissionAcceptanceTests
         </mdg:destinations>
       </mdg:BatchFileInterfaceMetadata>
 
-    new PrettyPrinter(24, 4).format(xml)
+    PrettyPrinter(24, 4).format(xml)
   }
 }

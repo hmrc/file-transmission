@@ -20,7 +20,7 @@ import java.time.Instant
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
@@ -43,28 +43,24 @@ class TransmissionRequestWorkItemRepositoryISpec
     with BeforeAndAfterAll
     with BeforeAndAfterEach
     with Eventually
-    with ScalaFutures {
+    with ScalaFutures
+    with IntegrationPatience {
 
-  override implicit lazy val app: Application = new GuiceApplicationBuilder()
-    .configure(
-      "auditing.enabled" -> "false",
-      "mdg.endpoint" -> "http://localhost:11111/mdg",
-      "callbackValidation.allowedProtocols" -> "http",
-      "initialBackoffAfterFailure" -> "1 milliseconds",
-      "queuePollingInterval" -> "1 day",
-      "deliveryWindowDuration" -> "15 seconds",
-      "metrics.jvm" -> "false"
-    )
-    .build()
+  override implicit lazy val app: Application =
+    GuiceApplicationBuilder()
+      .configure(
+        "auditing.enabled"                    -> "false",
+        "mdg.endpoint"                        -> "http://localhost:11111/mdg",
+        "callbackValidation.allowedProtocols" -> "http",
+        "initialBackoffAfterFailure"          -> "1 milliseconds",
+        "queuePollingInterval"                -> "1 day",
+        "deliveryWindowDuration"              -> "15 seconds"
+      )
+      .build()
 
-  override implicit val patienceConfig: PatienceConfig = PatienceConfig(
-    timeout = scaled(Span(5, Seconds)),
-    interval = scaled(Span(150, Millis))
-  )
+  val mdgServer = WireMockServer(wireMockConfig().port(11111))
 
-  val mdgServer = new WireMockServer(wireMockConfig().port(11111))
-
-  val consumingServiceServer = new WireMockServer(wireMockConfig().port(11112))
+  val consumingServiceServer = WireMockServer(wireMockConfig().port(11112))
 
   val testInstance: TransmissionRequestWorkItemRepository =
     app.injector.instanceOf[TransmissionRequestWorkItemRepository]
@@ -91,25 +87,26 @@ class TransmissionRequestWorkItemRepositoryISpec
 
   "TransmissionRequestEnvelopeWorkItemRepository" should {
     "persist FailedDeliveryAttempt collection within the TransmissionRequestEnvelope work item" in {
-
       testInstance.clearRequestQueue()
 
-      val testStart = java.time.Instant.now
+      val testStart = java.time.Instant.now()
 
       Given("a valid TransmissionRequest")
       val request = TransmissionRequest(
         Batch("A", 10),
         Interface("J", "1.0"),
-        File("ref",
-             new URL("http://127.0.0.1/test"),
-             "test.xml",
-             "application/xml",
-             "checksum",
-             1,
-             1024,
-             Instant.now),
+        File(
+          "ref",
+          URL("http://127.0.0.1/test"),
+          "test.xml",
+          "application/xml",
+          "checksum",
+          1,
+          1024,
+          Instant.now()
+        ),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
-        new URL("http://127.0.0.1/test"),
+        URL("http://127.0.0.1/test"),
         Some(30 seconds)
       )
 
@@ -137,24 +134,25 @@ class TransmissionRequestWorkItemRepositoryISpec
       val updatedWorkItemMaybe = testInstance.findById(workItem.id).futureValue
 
       val deliveryAttempts = updatedWorkItemMaybe
-        .getOrElse(throw new IllegalStateException("Failed to find Work Item"))
+        .getOrElse(throw IllegalStateException("Failed to find Work Item"))
         .item
         .deliveryAttempts
 
       deliveryAttempts.size shouldBe 2
 
-      val testEnd = java.time.Instant.now
+      val testEnd = java.time.Instant.now()
 
-      And(
-        "the FailedDeliveryAttempt(s) should include to expected failure reason, and timestamp")
+      And("the FailedDeliveryAttempt(s) should include to expected failure reason, and timestamp")
       validateDeliveryAttempt(deliveryAttempts(0), testStart, testEnd)
       validateDeliveryAttempt(deliveryAttempts(1), testStart, testEnd)
     }
   }
 
-  private def validateDeliveryAttempt(da: FailedDeliveryAttempt,
-                                      testStart: java.time.Instant,
-                                      testEnd: java.time.Instant): Unit = {
+  private def validateDeliveryAttempt(
+    da       : FailedDeliveryAttempt,
+    testStart: Instant,
+    testEnd  : Instant
+  ): Unit = {
     da.failureReason shouldBe "POST of 'http://localhost:11111/mdg' returned status 503. Response body: ''"
     da.time.isAfter(testStart) shouldBe true
     da.time.isBefore(testEnd) shouldBe true

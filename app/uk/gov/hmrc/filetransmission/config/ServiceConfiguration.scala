@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.filetransmission.config
 
-import javax.inject.Inject
 import org.apache.commons.lang3.StringUtils.isNotBlank
 import play.api.Configuration
 
+import javax.inject.Inject
 import scala.concurrent.duration.Duration
 
 trait ServiceConfiguration {
@@ -43,25 +43,26 @@ trait ServiceConfiguration {
   def mdgAuthorizationToken: String
 }
 
-class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
-    extends ServiceConfiguration {
+class PlayBasedServiceConfiguration @Inject()(
+  configuration: Configuration
+) extends ServiceConfiguration {
 
   override def allowedCallbackProtocols: Seq[String] =
     configuration
       .getOptional[String]("callbackValidation.allowedProtocols")
-      .map {
+      .map(
         _.split(",").toSeq
           .filter(isNotBlank)
-      }
+      )
       .getOrElse(Nil)
 
   override def allowedUserAgents: Seq[String] =
     configuration
       .getOptional[String]("userAgentFilter.allowedUserAgents")
-      .map {
+      .map(
         _.split(",").toSeq
           .filter(isNotBlank)
-      }
+      )
       .getOrElse(Nil)
 
   override def mdgEndpoint: String =
@@ -81,10 +82,12 @@ class PlayBasedServiceConfiguration @Inject()(configuration: Configuration)
     getRequired(configuration.getOptional[Duration](_), key)
 
   private def getRequired[T](function: String => Option[T], key: String) =
-    function(key).getOrElse(
-      throw new IllegalStateException(s"Configuration key not found: $key"))
+    function(key)
+      .getOrElse(throw IllegalStateException(s"Configuration key not found: $key"))
 
   override def mdgAuthorizationToken: String =
-    getRequired[String](configuration.getOptional[String](_),
-                        "mdg.authorizationToken")
+    getRequired[String](
+      configuration.getOptional[String](_),
+      "mdg.authorizationToken"
+    )
 }

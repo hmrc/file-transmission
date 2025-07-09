@@ -22,8 +22,8 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.Future
 
 trait CallbackSender {
-  def sendSuccessfulCallback(request: TransmissionRequest)(implicit hc: HeaderCarrier): Future[Unit]
+  def sendSuccessfulCallback(request: TransmissionRequest)(using HeaderCarrier): Future[Unit]
 
-  def sendFailedCallback(request: TransmissionRequest, reason: String)(implicit hc: HeaderCarrier): Future[Unit]
+  def sendFailedCallback(request: TransmissionRequest, reason: String)(using HeaderCarrier): Future[Unit]
 
 }

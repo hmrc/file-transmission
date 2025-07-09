@@ -1,12 +1,14 @@
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 
 lazy val microservice = Project("file-transmission", file("."))
-  .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
+  .enablePlugins(PlayScala, SbtDistributablesPlugin)
   .settings(
     majorVersion        := 1,
-    scalaVersion        := "2.13.16",
+    scalaVersion        := "3.3.6",
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
   )
-  .settings(scalacOptions += "-Wconf:src=routes/.*:s")
+  .settings(
+    scalacOptions += "-Wconf:msg=Flag.*repeatedly:s",
+    scalacOptions += "-Wconf:src=routes/.*:s"
+  )
   .settings(PlayKeys.playDefaultPort := 9575)
-  .settings(resolvers += Resolver.jcenterRepo)

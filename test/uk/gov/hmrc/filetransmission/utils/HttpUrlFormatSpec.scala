@@ -25,7 +25,7 @@ import play.api.libs.json._
 class HttpUrlFormatSpec extends AnyWordSpec with Matchers {
 
   "reads should properly read string url" in {
-    HttpUrlFormat.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(new URL("https://127.0.0.1"))
+    HttpUrlFormat.reads(JsString("https://127.0.0.1")) shouldBe JsSuccess(URL("https://127.0.0.1"))
   }
 
   "reads should fail if value is not a string" in {
@@ -37,7 +37,6 @@ class HttpUrlFormatSpec extends AnyWordSpec with Matchers {
   }
 
   "should properly write url" in {
-    HttpUrlFormat.writes(new URL("https://127.0.0.1")) shouldBe JsString("https://127.0.0.1")
+    HttpUrlFormat.writes(URL("https://127.0.0.1")) shouldBe JsString("https://127.0.0.1")
   }
-
 }

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.filetransmission.connector
 
-import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
@@ -24,9 +23,14 @@ import uk.gov.hmrc.filetransmission.services.CallbackSender
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: ExecutionContext) extends CallbackSender {
+class HttpCallbackSender @Inject()(
+  httpClient: HttpClient
+)(using
+  ExecutionContext
+) extends CallbackSender {
 
   private val logger = Logger(getClass)
 
@@ -43,20 +47,21 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
     errorDetails : String
   )
 
-  implicit val successfulCallback: Writes[SuccessfulCallback] = Json.writes[SuccessfulCallback]
+  given Writes[SuccessfulCallback] = Json.writes[SuccessfulCallback]
 
-  implicit val failureCallback: Writes[FailureCallback] = Json.writes[FailureCallback]
+  given Writes[FailureCallback] = Json.writes[FailureCallback]
 
-  implicit val legacyRawReads: HttpReads[HttpResponse] = HttpReads.Implicits.throwOnFailure(HttpReads.Implicits.readEitherOf(HttpReads.Implicits.readRaw))
+  given HttpReads[HttpResponse] =
+    HttpReads.Implicits.throwOnFailure(HttpReads.Implicits.readEitherOf(HttpReads.Implicits.readRaw))
 
-  override def sendSuccessfulCallback(request: TransmissionRequest)(implicit hc: HeaderCarrier): Future[Unit] = {
+  override def sendSuccessfulCallback(request: TransmissionRequest)(using HeaderCarrier): Future[Unit] = {
     val callback = SuccessfulCallback(
       fileReference = request.file.reference,
       batchId       = request.batch.id
     )
 
     httpClient
-      .POST[SuccessfulCallback, HttpResponse](request.callbackUrl.toString, callback)
+      .POST[SuccessfulCallback, HttpResponse](request.callbackUrl, callback)
       .map(response =>
         withLoggedContext(request) {
           logger.info(s"""Response from: [${request.callbackUrl}], to delivery successful callback: [$callback], was: [${response.status}].""")
@@ -71,7 +76,7 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
       }
   }
 
-  override def sendFailedCallback(request: TransmissionRequest, reason: String)(implicit hc: HeaderCarrier): Future[Unit] = {
+  override def sendFailedCallback(request: TransmissionRequest, reason: String)(using HeaderCarrier): Future[Unit] = {
     val callback = FailureCallback(
       fileReference = request.file.reference,
       batchId       = request.batch.id,
@@ -79,7 +84,7 @@ class HttpCallbackSender @Inject()(httpClient: HttpClient)(implicit ec: Executio
     )
 
     httpClient
-      .POST[FailureCallback, HttpResponse](request.callbackUrl.toString, callback)
+      .POST[FailureCallback, HttpResponse](request.callbackUrl, callback)
       .map(response =>
         withLoggedContext(request) {
           logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [$callback], was: [${response.status}].")

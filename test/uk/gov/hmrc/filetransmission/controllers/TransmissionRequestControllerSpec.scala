@@ -17,7 +17,9 @@
 package uk.gov.hmrc.filetransmission.controllers
 
 import org.apache.pekko.actor.ActorSystem
-import org.mockito.{Mockito, MockitoSugar, ArgumentMatchersSugar}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status
@@ -34,11 +36,12 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import play.api.test.Helpers._
 
-class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with ArgumentMatchersSugar{
+class TransmissionRequestControllerSpec
+  extends AnyWordSpec
+     with Matchers
+     with MockitoSugar {
 
-  implicit val actorSystem = ActorSystem()
-
-  //implicit val timeout: org.apache.pekko.util.Timeout = 10.seconds
+  given ActorSystem = ActorSystem()
 
   val serviceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = Seq("VALID-AGENT")
@@ -122,17 +125,20 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
         .thenReturn(Future.successful((): Unit))
 
       Mockito
-        .when(transmissionService.transmit(any[TransmissionRequestEnvelope])(
-          any[HeaderCarrier]))
+        .when(transmissionService.transmit(any[TransmissionRequestEnvelope])(using any[HeaderCarrier]))
         .thenReturn(Future.successful(TransmissionSuccess))
 
       val requestValidator: RequestValidator = mock[RequestValidator]
       Mockito.when(requestValidator.validate(any)).thenReturn(Right(()))
 
-      val controller = new TransmissionRequestController(transmissionQueue,
-                                                         transmissionService,
-                                                         requestValidator,
-                                                         serviceConfiguration, stubControllerComponents())
+      val controller =
+        TransmissionRequestController(
+          transmissionQueue,
+          transmissionService,
+          requestValidator,
+          serviceConfiguration,
+          stubControllerComponents()
+        )
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -142,18 +148,24 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
 
     "invalid request from allowed user-agent should return 400" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", serviceConfiguration.allowedUserAgents.head),
-                     ("x-request-id", "some-request-id"),
-                     ("x-session-id", "some-session-id"))
+        .withHeaders(
+          "User-Agent"   -> serviceConfiguration.allowedUserAgents.head,
+          "x-request-id" -> "some-request-id",
+          "x-session-id" -> "some-session-id"
+        )
         .withBody(Json.obj("invalid" -> "value"))
 
       val requestValidator: RequestValidator = mock[RequestValidator]
       Mockito.when(requestValidator.validate(any)).thenReturn(Right(()))
 
-      val controller = new TransmissionRequestController(transmissionQueue,
-                                                         transmissionService,
-                                                         requestValidator,
-                                                         serviceConfiguration, stubControllerComponents())
+      val controller =
+        TransmissionRequestController(
+          transmissionQueue,
+          transmissionService,
+          requestValidator,
+          serviceConfiguration,
+          stubControllerComponents()
+        )
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -163,18 +175,24 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
 
     "a request with an invalid callback url format from an allowed user-agent should receive a 400 result" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", serviceConfiguration.allowedUserAgents.head),
-                     ("x-request-id", "some-request-id"),
-                     ("x-session-id", "some-session-id"))
+        .withHeaders(
+          "User-Agent"   -> serviceConfiguration.allowedUserAgents.head,
+          "x-request-id" -> "some-request-id",
+          "x-session-id" -> "some-session-id"
+        )
         .withBody(requestBodyWithInvalidCallbackUrl)
 
       val requestValidator: RequestValidator = mock[RequestValidator]
       Mockito.when(requestValidator.validate(any)).thenReturn(Right(()))
 
-      val controller = new TransmissionRequestController(transmissionQueue,
-                                                         transmissionService,
-                                                         requestValidator,
-                                                         serviceConfiguration, stubControllerComponents())
+      val controller =
+        TransmissionRequestController(
+          transmissionQueue,
+          transmissionService,
+          requestValidator,
+          serviceConfiguration,
+          stubControllerComponents()
+        )
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -184,9 +202,11 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
 
     "a request with an invalid callback url protocol from an allowed user-agent should receive a 400 result" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", serviceConfiguration.allowedUserAgents.head),
-                     ("x-request-id", "some-request-id"),
-                     ("x-session-id", "some-session-id"))
+        .withHeaders(
+          "User-Agent"   -> serviceConfiguration.allowedUserAgents.head,
+          "x-request-id" -> "some-request-id",
+          "x-session-id" -> "some-session-id"
+        )
         .withBody(validRequestBody)
 
       val requestValidator: RequestValidator = mock[RequestValidator]
@@ -194,10 +214,14 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
         .when(requestValidator.validate(any))
         .thenReturn(Left("InvalidRequest"))
 
-      val controller = new TransmissionRequestController(transmissionQueue,
-                                                         transmissionService,
-                                                         requestValidator,
-                                                         serviceConfiguration, stubControllerComponents())
+      val controller =
+        TransmissionRequestController(
+          transmissionQueue,
+          transmissionService,
+          requestValidator,
+          serviceConfiguration,
+          stubControllerComponents()
+        )
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -208,18 +232,24 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
 
     "an otherwise valid request from an unrecognised user-agent should receive a 403 result" in {
       val request: FakeRequest[JsValue] = FakeRequest()
-        .withHeaders(("User-Agent", "UNRECOGNISED-AGENT"),
-                     ("x-request-id", "some-request-id"),
-                     ("x-session-id", "some-session-id"))
+        .withHeaders(
+          "User-Agent"    -> "UNRECOGNISED-AGENT",
+          "x-request-id"  -> "some-request-id",
+          "x-session-id" -> "some-session-id"
+        )
         .withBody(validRequestBody)
 
       val requestValidator: RequestValidator = mock[RequestValidator]
       Mockito.when(requestValidator.validate(any)).thenReturn(Right(()))
 
-      val controller = new TransmissionRequestController(transmissionQueue,
-                                                         transmissionService,
-                                                         requestValidator,
-                                                         serviceConfiguration, stubControllerComponents())
+      val controller =
+        TransmissionRequestController(
+          transmissionQueue,
+          transmissionService,
+          requestValidator,
+          serviceConfiguration,
+          stubControllerComponents()
+        )
       val result = controller.requestTransmission()(request)
 
       withClue(Helpers.contentAsString(result)) {
@@ -227,5 +257,4 @@ class TransmissionRequestControllerSpec extends AnyWordSpec with Matchers with M
       }
     }
   }
-
 }
