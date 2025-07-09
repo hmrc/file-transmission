@@ -25,7 +25,7 @@ object LoggingOps {
 
   def withLoggedContext[M: ContextExtractor, R](model: M)(block: => R): R = {
 
-    val vs = implicitly[ContextExtractor[M]].extract(model)
+    val vs = summon[ContextExtractor[M]].extract(model)
 
     try {
       vs.foreach { case (k,v) => MDC.put(k,v) }

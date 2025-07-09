@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.filetransmission.controllers
 
-import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -27,40 +26,40 @@ import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
 import uk.gov.hmrc.filetransmission.utils.UserAgentFilter
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
 class TransmissionRequestController @Inject()(
-    workItemService: WorkItemService,
-    transmissionService: TransmissionService,
-    requestValidator: RequestValidator,
-    override val configuration: ServiceConfiguration,
-    cc: ControllerComponents)(
-  implicit ec: ExecutionContext)
-  extends BackendController(cc)
-    with UserAgentFilter {
+  workItemService           : WorkItemService,
+  transmissionService       : TransmissionService,
+  requestValidator          : RequestValidator,
+  override val configuration: ServiceConfiguration,
+  cc                        : ControllerComponents
+)(using
+  ExecutionContext
+) extends BackendController(cc)
+     with UserAgentFilter {
 
   private val logger = Logger(getClass)
 
-  def requestTransmission() = Action.async(parse.json) {
-    implicit request: Request[JsValue] =>
-      onlyAllowedServices { serviceName =>
-        withJsonBody[TransmissionRequest] { transmissionRequest =>
-          requestValidator.validate(transmissionRequest) match {
-            case Left(e) => Future.successful(BadRequest(e))
-            case _       =>
-              transmissionService
-                .transmit(TransmissionRequestEnvelope(transmissionRequest, serviceName))
-                .map { _ => Accepted }
+  def requestTransmission() =
+    Action.async(parse.json) {
+      implicit request: Request[JsValue] =>
+        onlyAllowedServices { serviceName =>
+          withJsonBody[TransmissionRequest] { transmissionRequest =>
+            requestValidator.validate(transmissionRequest) match
+              case Left(e) => Future.successful(BadRequest(e))
+              case _       => transmissionService
+                                .transmit(TransmissionRequestEnvelope(transmissionRequest, serviceName))
+                                .map { _ => Accepted }
           }
         }
-      }
-  }
+    }
 
   def clearRequestQueue() = Action.async {
-    workItemService.clearQueue().map{ cleared =>
+    workItemService.clearQueue().map { cleared =>
       logger.info(s"Clear request queue result was: [$cleared].")
       Ok(Json.parse(s"""{"cleared":"$cleared"}"""))}
   }
 }
-

@@ -16,41 +16,35 @@
 
 package uk.gov.hmrc.filetransmission.connector
 
-import java.net.URL
-import java.time.Instant
-
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo, _}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import org.mockito.MockitoSugar
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.test.HttpClientSupport
 
+import java.net.URL
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class HttpCallbackSenderSpec
-    extends AnyWordSpec
-    with GivenWhenThen
-    with MockitoSugar
-    with Matchers
-    with BeforeAndAfterAll
-    with HttpClientSupport
-    with ScalaFutures {
+  extends AnyWordSpec
+     with GivenWhenThen
+     with MockitoSugar
+     with Matchers
+     with BeforeAndAfterAll
+     with HttpClientSupport
+     with ScalaFutures
+     with IntegrationPatience {
 
   val wiremockPort = 11111
 
-  val callbackServer = new WireMockServer(wireMockConfig().port(wiremockPort))
-
-  override implicit val patienceConfig: PatienceConfig = PatienceConfig(
-    timeout = scaled(Span(10, Seconds)),
-    interval = scaled(Span(150, Millis))
-  )
+  val callbackServer = WireMockServer(wireMockConfig().port(wiremockPort))
 
   override def beforeAll(): Unit =
     callbackServer.start()
@@ -74,32 +68,32 @@ class HttpCallbackSenderSpec
             .withStatus(503)
         ))
 
-  val callbackUrl = new URL(s"http://127.0.0.1:$wiremockPort/listen")
+  val callbackUrl = URL(s"http://127.0.0.1:$wiremockPort/listen")
 
   val request: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
-    File("ref",
-         new URL("http://127.0.0.1:11111/test"),
-         "test.xml",
-         "application/xml",
-         "checksum",
-         1,
-         1024,
-         Instant.now),
+    File(
+      "ref",
+      URL("http://127.0.0.1:11111/test"),
+      "test.xml",
+      "application/xml",
+      "checksum",
+      1,
+      1024,
+      Instant.now()
+    ),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     callbackUrl,
     None
   )
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given hc: HeaderCarrier = HeaderCarrier()
 
   "Callback sender" should {
-
-    val callbackSender = new HttpCallbackSender(httpClient)
+    val callbackSender = HttpCallbackSender(httpClient)
 
     "allow to send success notifications to consuming services" in {
-
       stubCallbackReceiverToReturnValidResponse()
 
       callbackSender.sendSuccessfulCallback(request).futureValue shouldBe((): Unit)
@@ -107,25 +101,23 @@ class HttpCallbackSenderSpec
       callbackServer.verify(
         postRequestedFor(urlEqualTo("/listen"))
           .withRequestBody(equalToJson(s"""
-               | {
-               |   "fileReference" : "${request.file.reference}",
-               |   "batchId" : "${request.batch.id}",
-               |   "outcome" : "SUCCESS"
-               | }
-               | """.stripMargin)))
-
+            | {
+            |   "fileReference" : "${request.file.reference}",
+            |   "batchId" : "${request.batch.id}",
+            |   "outcome" : "SUCCESS"
+            | }
+            | """.stripMargin
+           ))
+      )
     }
 
     "properly handle errors when sending success notifications" in {
-
       stubCallbackReceiverToReturnInvalidResponse()
 
       assert(callbackSender.sendFailedCallback(request, "Planned exception").failed.futureValue.isInstanceOf[Exception])
-
     }
 
     "allow to send error notifications to consuming services" in {
-
       stubCallbackReceiverToReturnValidResponse()
 
       callbackSender.sendFailedCallback(request, "Planned exception").futureValue shouldBe((): Unit)
@@ -140,16 +132,15 @@ class HttpCallbackSenderSpec
                |   "outcome" : "FAILURE",
                |   "errorDetails" : "Planned exception"
                | }
-               | """.stripMargin)))
+               | """.stripMargin
+          ))
+      )
     }
 
     "properly handle errors when sending error notifications" in {
-
       stubCallbackReceiverToReturnInvalidResponse()
 
       assert(callbackSender.sendFailedCallback(request, "Planned exception").failed.futureValue.isInstanceOf[Exception])
     }
-
   }
-
 }

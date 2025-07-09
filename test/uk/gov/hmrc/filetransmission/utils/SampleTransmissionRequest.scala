@@ -25,20 +25,22 @@ import scala.concurrent.duration._
 
 object SampleTransmissionRequest {
 
-  def get: TransmissionRequest = TransmissionRequest(
-    Batch("A", 10),
-    Interface("J", "1.0"),
-    File("ref",
-         new URL("http://127.0.0.1/test"),
-         "test.xml",
-         "application/xml",
-         "checksum",
-         1,
-         1024,
-         Instant.now),
-    Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
-    new URL("http://127.0.0.1/test"),
-    Some(30.seconds)
-  )
-
+  def get(): TransmissionRequest =
+    TransmissionRequest(
+      Batch("A", 10),
+      Interface("J", "1.0"),
+      File(
+        "ref",
+        URL("http://127.0.0.1/test"),
+        "test.xml",
+        "application/xml",
+        "checksum",
+        1,
+        1024,
+        Instant.now()
+      ),
+      Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
+      URL("http://127.0.0.1/test"),
+      Some(30.seconds)
+    )
 }

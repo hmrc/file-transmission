@@ -16,23 +16,27 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 
-import java.util.concurrent.{Executors, TimeUnit}
-
 import org.apache.pekko.actor.{Actor, ActorSystem, PoisonPill, Props}
 import org.apache.pekko.event.Logging
-import javax.inject.Inject
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 
+import java.util.concurrent.{Executors, TimeUnit}
+import javax.inject.Inject
 import scala.concurrent.Future
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.{Failure, Success}
 
-class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, configuration: ServiceConfiguration)(
-  implicit actorSystem: ActorSystem,
-  applicationLifecycle: ApplicationLifecycle) {
+class WorkItemProcessingScheduler @Inject()(
+  queueProcessor: WorkItemService,
+  configuration : ServiceConfiguration
+)(using
+  actorSystem         : ActorSystem,
+  applicationLifecycle: ApplicationLifecycle
+) {
 
-  val pollingInterval: FiniteDuration = FiniteDuration(configuration.queuePollingInterval.toMillis, MILLISECONDS)
+  val pollingInterval: FiniteDuration =
+    FiniteDuration(configuration.queuePollingInterval.toMillis, MILLISECONDS)
 
   val retryAfterFailureInterval: FiniteDuration =
     FiniteDuration(configuration.queueRetryAfterFailureInterval.toMillis, MILLISECONDS)
@@ -40,15 +44,13 @@ class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, con
   case object Poll
 
   class ContinuousPollingActor extends Actor {
-
     import context.dispatcher
 
     val log = Logging(context.system, this)
 
     override def receive: Receive = {
-
       case Poll =>
-        queueProcessor.processOne() andThen {
+        queueProcessor.processOne().andThen {
           case Success(true) =>
             self ! Poll
           case Success(false) =>
@@ -58,14 +60,14 @@ class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, con
             context.system.scheduler.scheduleOnce(retryAfterFailureInterval, self, Poll)
         }
     }
-
   }
 
-  private val pollingActor = actorSystem.actorOf(Props(new ContinuousPollingActor()))
+  private val pollingActor = actorSystem.actorOf(Props(ContinuousPollingActor()))
 
-  val bootstrap = new Runnable {
-    override def run(): Unit = pollingActor ! Poll
-  }
+  val bootstrap =
+    new Runnable {
+      override def run(): Unit = pollingActor ! Poll
+    }
 
   // Start the polling after a delay.
   Executors.newScheduledThreadPool(1).schedule(bootstrap, pollingInterval.toMillis, TimeUnit.MILLISECONDS)
@@ -77,5 +79,4 @@ class WorkItemProcessingScheduler @Inject()(queueProcessor: WorkItemService, con
     shutDown()
     Future.successful(())
   }
-
 }

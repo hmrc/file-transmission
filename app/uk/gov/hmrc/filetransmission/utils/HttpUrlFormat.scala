@@ -16,23 +16,26 @@
 
 package uk.gov.hmrc.filetransmission.utils
 
-import java.net.URL
-
-import scala.util.Try
 import play.api.libs.json._
+
+import java.net.URL
+import scala.util.Try
 
 object HttpUrlFormat extends Format[URL] {
 
-  override def reads(json: JsValue): JsResult[URL] = json match {
-    case JsString(s) => {
-      parseUrl(s).map(JsSuccess(_)).getOrElse(
-        JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.url"))))
-      )
-    }
-    case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.url"))))
-  }
+  override def reads(json: JsValue): JsResult[URL] =
+    json match
+      case JsString(s) =>
+        parseUrl(s)
+          .map(JsSuccess(_))
+          .getOrElse(
+            JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.url"))))
+          )
+      case _ => JsError(Seq(JsPath() -> Seq(JsonValidationError("error.expected.url"))))
 
-  private def parseUrl(s: String): Option[URL] = Try(new URL(s)).toOption
+  private def parseUrl(s: String): Option[URL] =
+    Try(URL(s)).toOption
 
-  override def writes(o: URL): JsValue = JsString(o.toString)
+  override def writes(o: URL): JsValue =
+    JsString(o.toString)
 }

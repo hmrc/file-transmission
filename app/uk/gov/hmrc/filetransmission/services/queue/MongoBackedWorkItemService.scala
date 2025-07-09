@@ -33,9 +33,11 @@ case class ProcessingFailed(error: String) extends ProcessingResult
 case class ProcessingFailedDoNotRetry(error: String) extends ProcessingResult
 
 trait QueueJob {
-  def process(item: TransmissionRequestEnvelope,
-              nextRetryTime: Instant,
-              timeToGiveUp: Instant): Future[ProcessingResult]
+  def process(
+    item         : TransmissionRequestEnvelope,
+    nextRetryTime: Instant,
+    timeToGiveUp : Instant
+  ): Future[ProcessingResult]
 }
 
 trait WorkItemService {
@@ -47,11 +49,13 @@ trait WorkItemService {
 }
 
 class MongoBackedWorkItemService @Inject()(
-    repository: TransmissionRequestWorkItemRepository,
-    queueJob: QueueJob,
-    configuration: ServiceConfiguration,
-    clock: Clock)(implicit ec: ExecutionContext)
-    extends WorkItemService {
+  repository   : TransmissionRequestWorkItemRepository,
+  queueJob     : QueueJob,
+  configuration: ServiceConfiguration,
+  clock        : Clock
+)(using
+  ExecutionContext
+) extends WorkItemService {
 
   def enqueue(request: TransmissionRequestEnvelope): Future[Unit] =
     repository.pushNew(request, now()).map(_ => ())
@@ -72,42 +76,46 @@ class MongoBackedWorkItemService @Inject()(
     somethingHasBeenProcessed
   }
 
-  override def clearQueue(): Future[Boolean] = repository.clearRequestQueue()
+  override def clearQueue(): Future[Boolean] =
+    repository.clearRequestQueue()
 
   private def processWorkItem(
-      workItem: WorkItem[TransmissionRequestEnvelope],
-      processedAt: Instant = Instant.now(clock)
+    workItem   : WorkItem[TransmissionRequestEnvelope],
+    processedAt: Instant = Instant.now(clock)
   ): Future[Unit] = {
 
     // Update the work item with the latest FailedDeliveryAttempt, then update the status.
-    def updateStatusForFailedDeliveryAttempt(status: ResultStatus,
-                                             availableAt: Option[Instant],
-                                             error: String): Future[Boolean] = {
+    def updateStatusForFailedDeliveryAttempt(
+      status     : ResultStatus,
+      availableAt: Option[Instant],
+      error      : String
+    ): Future[Boolean] = {
       val updatedEnvelope = workItem.item.withFailedDeliveryAttempt(FailedDeliveryAttempt(processedAt, error))
 
-      for {
+      for
         _       <- repository.markAs(workItem.id, status, availableAt)
         updated <- repository.updateWorkItemBodyDeliveryAttempts(workItem.id, updatedEnvelope)
-      } yield updated
+      yield updated
     }
 
     val request = workItem.item
 
     val nextRetryTime: Instant = nextAvailabilityTime(workItem)
 
-    for (processingResult <- queueJob.process(request, nextRetryTime, timeToGiveUp(workItem))) yield {
-      processingResult match {
+    for
+      processingResult <- queueJob.process(request, nextRetryTime, timeToGiveUp(workItem))
+    yield
+      processingResult match
         case ProcessingSuccessful =>
           repository.complete(workItem.id, ProcessingStatus.Succeeded)
         case ProcessingFailed(error) =>
           updateStatusForFailedDeliveryAttempt(ProcessingStatus.Failed, Some(nextRetryTime), error)
         case ProcessingFailedDoNotRetry(error) =>
           updateStatusForFailedDeliveryAttempt(ProcessingStatus.PermanentlyFailed, None, error)
-      }
-    }
   }
 
-  private def now(): Instant = Instant.now(clock)
+  private def now(): Instant =
+    Instant.now(clock)
 
   private def nextAvailabilityTime[T](workItem: WorkItem[T]): Instant = {
     val instantNow = now()
@@ -123,5 +131,4 @@ class MongoBackedWorkItemService @Inject()(
 
     workItem.receivedAt.plusMillis(deliveryWindowDuration.toMillis)
   }
-
 }

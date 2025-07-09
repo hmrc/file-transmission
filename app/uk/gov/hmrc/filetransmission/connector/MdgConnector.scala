@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.filetransmission.connector
 
-import java.util.UUID
-
-import javax.inject.Inject
 import play.api.Logger
 import play.api.http.{ContentTypes, HeaderNames, MimeTypes, Status}
 import play.mvc.Http
@@ -27,28 +24,35 @@ import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 
+import java.util.UUID
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait MdgRequestResult {
   def error: Option[String]
 }
+
 case object MdgRequestSuccessful extends MdgRequestResult {
   override def error: Option[String] = None
 }
+
 case class MdgRequestError(e: String) extends MdgRequestResult {
   override def error: Option[String] = Some(e)
+
 }
 case class MdgRequestFatalError(e: String) extends MdgRequestResult {
   override def error: Option[String] = Some(e)
 }
 
 class MdgConnector @Inject()(
-    httpClient: HttpClient,
-    serviceConfiguration: ServiceConfiguration,
-    requestSerializer: MdgRequestSerializer)(implicit ec: ExecutionContext) {
+  httpClient          : HttpClient,
+  serviceConfiguration: ServiceConfiguration,
+  requestSerializer   : MdgRequestSerializer
+)(using ExecutionContext) {
 
-  def requestTransmission(request: TransmissionRequest)(
-      implicit hc: HeaderCarrier): Future[MdgRequestResult] = {
+  def requestTransmission(
+    request: TransmissionRequest
+  )(using HeaderCarrier): Future[MdgRequestResult] = {
 
     val logger = Logger(getClass)
     val serializedRequest: String = requestSerializer.serialize(request)
@@ -59,38 +63,41 @@ class MdgConnector @Inject()(
       val safeHeaders =
         headers.filterNot(_._1 == Http.HeaderNames.AUTHORIZATION)
       logger.debug(
-        s"Sent request to MDG [${serviceConfiguration.mdgEndpoint}] with body [$serializedRequest], headers [$safeHeaders]")
+        s"Sent request to MDG [${serviceConfiguration.mdgEndpoint}] with body [$serializedRequest], headers [$safeHeaders]"
+      )
     }
 
-    httpClient.POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,serializedRequest,headers).map { response =>
-      response.status match {
-        case s if Status.isSuccessful(s) =>
-          logger.info(
-            s"Sending request for file with reference [${request.file.reference}] was successful. MDG Correlation id [$correlationId]")
-          MdgRequestSuccessful
+    httpClient.POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,serializedRequest, headers)
+      .map { response =>
+        response.status match
+          case s if Status.isSuccessful(s) =>
+            logger.info(
+              s"Sending request for file with reference [${request.file.reference}] was successful. MDG Correlation id [$correlationId]"
+            )
+            MdgRequestSuccessful
 
-        case s if Status.isClientError(s) =>
-          logger.warn(
-            s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [${response.body}]")
-          MdgRequestFatalError(s"POST of '${serviceConfiguration.mdgEndpoint}' returned status $s. Response body: '${response.body}'")
+          case s if Status.isClientError(s) =>
+            logger.warn(
+              s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [${response.body}]"
+            )
+            MdgRequestFatalError(s"POST of '${serviceConfiguration.mdgEndpoint}' returned status $s. Response body: '${response.body}'")
 
-        case s =>
-          logger.warn(
-            s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [${response.body}]")
-          MdgRequestError(s"POST of '${serviceConfiguration.mdgEndpoint}' returned status $s. Response body: '${response.body}'")
+          case s =>
+            logger.warn(
+              s"Sending request for file with reference [${request.file.reference}] failed. MDG Correlation id [$correlationId]. Cause [${response.body}]"
+            )
+            MdgRequestError(s"POST of '${serviceConfiguration.mdgEndpoint}' returned status $s. Response body: '${response.body}'")
       }
     }
-  }
 
-  private def generateCorrelationId(): String = UUID.randomUUID().toString
+  private def generateCorrelationId(): String =
+    UUID.randomUUID().toString
 
   private def buildHeaders(correlationId: String) =
     Seq(
-      (HeaderNames.CONTENT_TYPE, ContentTypes.XML),
-      (HeaderNames.ACCEPT, MimeTypes.XML),
-      (HeaderNames.AUTHORIZATION,
-       s"Bearer ${serviceConfiguration.mdgAuthorizationToken}"),
-      "X-Correlation-ID" -> correlationId
+      HeaderNames.CONTENT_TYPE  -> ContentTypes.XML,
+      HeaderNames.ACCEPT        -> MimeTypes.XML,
+      HeaderNames.AUTHORIZATION -> s"Bearer ${serviceConfiguration.mdgAuthorizationToken}",
+      "X-Correlation-ID"        -> correlationId
     )
-
 }

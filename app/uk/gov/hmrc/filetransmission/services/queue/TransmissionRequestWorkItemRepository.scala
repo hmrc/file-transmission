@@ -16,19 +16,17 @@
 
 package uk.gov.hmrc.filetransmission.services.queue
 
-import java.time.{Clock, Instant}
-
-import com.typesafe.config.Config
-import javax.inject.{Inject, Singleton}
 import org.bson.types.ObjectId
-
+import org.mongodb.scala.SingleObservableFuture
+import org.mongodb.scala.model.{Filters, Updates, FindOneAndUpdateOptions, ReturnDocument}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.mongo.workitem.{WorkItemFields, WorkItemRepository}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs
-import org.mongodb.scala.model.{Filters, Updates, FindOneAndUpdateOptions, ReturnDocument}
 
+import java.time.Instant
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 object TransmissionRequestWorkItemRepository {
@@ -46,16 +44,15 @@ object TransmissionRequestWorkItemRepository {
 
 @Singleton
 class TransmissionRequestWorkItemRepository @Inject()(
-    val mongoComponent: MongoComponent,
-    configuration: ServiceConfiguration,
-    clock: Clock,
-    config: Config)(implicit ec: ExecutionContext)
-    extends WorkItemRepository[TransmissionRequestEnvelope](
-      collectionName = "transmission-request",
-      mongoComponent = mongoComponent,
-      itemFormat     = TransmissionRequestEnvelope.transmissionRequestEnvelopeFormat,
-      workItemFields = TransmissionRequestWorkItemRepository.workItemFields
-    ) {
+  val mongoComponent: MongoComponent,
+  configuration     : ServiceConfiguration
+)(using ExecutionContext
+) extends WorkItemRepository[TransmissionRequestEnvelope](
+  collectionName = "transmission-request",
+  mongoComponent = mongoComponent,
+  itemFormat     = TransmissionRequestEnvelope.transmissionRequestEnvelopeFormat,
+  workItemFields = TransmissionRequestWorkItemRepository.workItemFields
+) {
 
   override def now(): Instant =
     Instant.now()
@@ -68,7 +65,7 @@ class TransmissionRequestWorkItemRepository @Inject()(
       .drop()
       .toFuture()
       .map(_ => true)
-      .recover { case _ => false}
+      .recover { case _ => false }
 
   def updateWorkItemBodyDeliveryAttempts(workItemId: ObjectId, body: TransmissionRequestEnvelope): Future[Boolean] =
     collection

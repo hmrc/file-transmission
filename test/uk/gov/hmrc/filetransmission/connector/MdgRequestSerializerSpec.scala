@@ -16,15 +16,14 @@
 
 package uk.gov.hmrc.filetransmission.connector
 
-import java.net.URL
-import java.time.Instant
-
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.xml.sax.SAXParseException
 import uk.gov.hmrc.filetransmission.model._
 
+import java.net.URL
+import java.time.Instant
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Try
@@ -34,24 +33,24 @@ import scala.xml.factory.XMLLoader
 class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
 
   "MdgRequestSerializer" should {
-
-    val serializer = new MdgRequestSerializer
+    val serializer = MdgRequestSerializer()
 
     "produces requests that are compliant with MDG XSD schema" in {
-
       val request = TransmissionRequest(
         Batch("A", 10),
         Interface("J", "1.0"),
-        File("ref",
-             new URL("http://127.0.0.1/test"),
-             "test.xml",
-             "application/xml",
-             "checksum",
-             1,
-             1024,
-             Instant.now),
+        File(
+          "ref",
+          URL("http://127.0.0.1/test"),
+          "test.xml",
+          "application/xml",
+          "checksum",
+          1,
+          1024,
+          Instant.now()
+        ),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
-        new URL("http://127.0.0.1/test"),
+        URL("http://127.0.0.1/test"),
         Some(30.seconds)
       )
 
@@ -69,16 +68,18 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
       val request = TransmissionRequest(
         Batch("A", 10),
         Interface("J", "1.0"),
-        File("ref",
-             new URL("http://127.0.0.1/test"),
-             "test.xml",
-             "application/xml",
-             "checksum",
-             1,
-             1024,
-             Instant.now),
+        File(
+          "ref",
+          URL("http://127.0.0.1/test"),
+          "test.xml",
+          "application/xml",
+          "checksum",
+          1,
+          1024,
+          Instant.now()
+        ),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
-        new URL("http://127.0.0.1/test"),
+        URL("http://127.0.0.1/test"),
         Some(30 seconds)
       )
 
@@ -95,16 +96,18 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
       val request = TransmissionRequest(
         Batch("A", 10),
         Interface("interface1", "1.0"),
-        File("ref",
-             new URL("http://127.0.0.1/test"),
-             "test.xml",
-             "application/xml",
-             "checksum",
-             1,
-             1024,
-             Instant.now),
+        File(
+          "ref",
+          URL("http://127.0.0.1/test"),
+          "test.xml",
+          "application/xml",
+          "checksum",
+          1,
+          1024,
+          Instant.now()
+        ),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
-        new URL("http://127.0.0.1/test"),
+        URL("http://127.0.0.1/test"),
         Some(30 seconds)
       )
 
@@ -170,8 +173,9 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
       val request = TransmissionRequest(
         Batch("A", 10),
         Interface("J", "1.0"),
-        File("ref",
-          new URL("http://127.0.0.1/test"),
+        File(
+          "ref",
+          URL("http://127.0.0.1/test"),
           longFilename,
           "application/xml",
           "checksum",
@@ -179,7 +183,7 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
           1024,
           Instant.now),
         Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
-        new URL("http://127.0.0.1/test"),
+        URL("http://127.0.0.1/test"),
         Some(30 seconds)
       )
 
@@ -187,16 +191,16 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
 
       assert(serializedRequest.contains(s"<mdg:sourceFileName>$longFilename</mdg:sourceFileName>"))
     }
-
   }
 
   private def validateSchema(body: String): Try[Unit] = {
 
     val schemaLang = javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
     val xsdStream =
-      new javax.xml.transform.stream.StreamSource(
+      javax.xml.transform.stream.StreamSource(
         this.getClass
-          .getResourceAsStream("/BatchFileInterfaceMetadata-1.0.7.xsd"))
+          .getResourceAsStream("/BatchFileInterfaceMetadata-1.0.7.xsd")
+      )
     val schema = javax.xml.validation.SchemaFactory
       .newInstance(schemaLang)
       .newSchema(xsdStream)
@@ -211,16 +215,11 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
 
       override def adapter =
         new scala.xml.parsing.NoBindingFactoryAdapter {
-
           override def error(e: SAXParseException): Unit =
             throw e
-
         }
-
     }
 
     Try(xmlLoader.loadString(body))
-
   }
-
 }

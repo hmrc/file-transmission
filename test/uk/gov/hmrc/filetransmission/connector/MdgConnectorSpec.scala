@@ -22,10 +22,10 @@ import java.time.Instant
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import org.mockito.{Mockito, MockitoSugar}
-import org.scalatest.concurrent.ScalaFutures
+import org.mockito.Mockito
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
@@ -43,12 +43,8 @@ class MdgConnectorSpec
     with Matchers
     with BeforeAndAfterAll
     with HttpClientSupport
-    with ScalaFutures {
-
-  override implicit val patienceConfig: PatienceConfig = PatienceConfig(
-    timeout = scaled(Span(10, Seconds)),
-    interval = scaled(Span(150, Millis))
-  )
+    with ScalaFutures
+    with IntegrationPatience {
 
   val serviceConfiguration: ServiceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = ???
@@ -66,20 +62,22 @@ class MdgConnectorSpec
   val request: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
-    File("ref",
-         new URL("http://127.0.0.1/test"),
-         "test.xml",
-         "application/xml",
-         "checksum",
-         1,
-         1024,
-         Instant.now),
+    File(
+      "ref",
+      URL("http://127.0.0.1/test"),
+      "test.xml",
+      "application/xml",
+      "checksum",
+      1,
+      1024,
+      Instant.now()
+    ),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
-    new URL("http://127.0.0.1/test"),
+    URL("http://127.0.0.1/test"),
     None
   )
 
-  val mdgServer = new WireMockServer(wireMockConfig().port(11111))
+  val mdgServer = WireMockServer(wireMockConfig().port(11111))
 
   override def beforeAll() =
     mdgServer.start()
@@ -120,9 +118,9 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        new MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClient, serviceConfiguration, serializer)
 
-      connector.requestTransmission(request)(HeaderCarrier()).futureValue shouldBe MdgRequestSuccessful
+      connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe MdgRequestSuccessful
     }
 
     "return failed response when call to MDG failed" in {
@@ -132,9 +130,9 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        new MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClient, serviceConfiguration, serializer)
 
-      connector.requestTransmission(request)(HeaderCarrier()).futureValue shouldBe a[MdgRequestError]
+      connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe a[MdgRequestError]
     }
 
     "return fatally failed response when call to MDG failed and returned HTTP 400 bad request" in {
@@ -144,11 +142,10 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        new MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClient, serviceConfiguration, serializer)
 
-      connector.requestTransmission(request)(HeaderCarrier()).futureValue
-      connector.requestTransmission(request)(HeaderCarrier()).futureValue shouldBe a[MdgRequestFatalError]
+      connector.requestTransmission(request)(using HeaderCarrier()).futureValue
+      connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe a[MdgRequestFatalError]
     }
   }
-
 }

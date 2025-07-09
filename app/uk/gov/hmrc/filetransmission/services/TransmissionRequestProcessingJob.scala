@@ -17,10 +17,9 @@
 package uk.gov.hmrc.filetransmission.services
 
 import play.api.Logger
-import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.connector.{MdgRequestSuccessful, _}
+import uk.gov.hmrc.filetransmission.connector.*
 import uk.gov.hmrc.filetransmission.model.{FailedDeliveryAttempt, TransmissionRequestEnvelope}
-import uk.gov.hmrc.filetransmission.services.queue._
+import uk.gov.hmrc.filetransmission.services.queue.*
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -29,54 +28,59 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class TransmissionRequestProcessingJob @Inject()(
-    mdgConnector: MdgConnector,
-    callbackSender: CallbackSender,
-    configuration: ServiceConfiguration,
-    clock: Clock)(implicit ec: ExecutionContext)
-    extends QueueJob {
+  mdgConnector  : MdgConnector,
+  callbackSender: CallbackSender,
+  clock         : Clock
+)(using
+  ExecutionContext
+) extends QueueJob {
 
   private val logger = Logger(getClass)
 
-  override def process(item: TransmissionRequestEnvelope,
-                       nextRetryTime: Instant,
-                       timeToGiveUp: Instant): Future[ProcessingResult] = {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-    val now = clock.instant
+  override def process(
+    item         : TransmissionRequestEnvelope,
+    nextRetryTime: Instant,
+    timeToGiveUp : Instant
+  ): Future[ProcessingResult] = {
+    given HeaderCarrier = HeaderCarrier()
+    val now = clock.instant()
 
-    for (result <- mdgConnector.requestTransmission(item.request)) yield {
+    for
+      result <- mdgConnector.requestTransmission(item.request)
+    yield
       withLoggedContext(item.request) {
 
         logIfDeliveryWindowHasExpired(item, now, timeToGiveUp, result.error)
 
-        result match {
+        result match
           case MdgRequestSuccessful =>
             callbackSender.sendSuccessfulCallback(item.request)
             ProcessingSuccessful
           case MdgRequestFatalError(error) =>
             callbackSender.sendFailedCallback(item.request, error)
             ProcessingFailedDoNotRetry(error)
-          case MdgRequestError(error) => {
+          case MdgRequestError(error) =>
             if (nextRetryTime.isBefore(timeToGiveUp)) {
               ProcessingFailed(error)
             } else {
               callbackSender.sendFailedCallback(item.request, error)
               ProcessingFailedDoNotRetry(error)
             }
-          }
-        }
       }
-    }
   }
 
-  private def logIfDeliveryWindowHasExpired(envelope: TransmissionRequestEnvelope,
-                                            now: java.time.Instant,
-                                            timeToGiveUp: java.time.Instant,
-                                            error: Option[String]): Unit = {
+  private def logIfDeliveryWindowHasExpired(
+    envelope    : TransmissionRequestEnvelope,
+    now         : Instant,
+    timeToGiveUp: Instant,
+    error       : Option[String]
+  ): Unit = {
     if (now.isAfter(timeToGiveUp)) {
 
-      val newFailedDeliveryAttempt: Option[FailedDeliveryAttempt] = error.map {
-        error => new FailedDeliveryAttempt(now, error)
-      }
+      val newFailedDeliveryAttempt: Option[FailedDeliveryAttempt] =
+        error.map {
+          error => FailedDeliveryAttempt(now, error)
+        }
 
       val updatedDeliveryAttempts: Seq[FailedDeliveryAttempt] = envelope.deliveryAttempts ++ newFailedDeliveryAttempt
 

@@ -17,13 +17,14 @@
 package uk.gov.hmrc.filetransmission.services.queue
 
 import org.bson.types.ObjectId
-import org.mockito.{ArgumentCaptor, Mockito, MockitoSugar, ArgumentMatchersSugar}
-import org.scalatest.concurrent.ScalaFutures
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.{verify, verifyNoInteractions, when}
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, GivenWhenThen}
-
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
 import uk.gov.hmrc.filetransmission.utils.SampleTransmissionRequest
@@ -38,18 +39,13 @@ class MongoBackedWorkItemServiceSpec
     with Matchers
     with GivenWhenThen
     with MockitoSugar
-    with ArgumentMatchersSugar
     with BeforeAndAfterEach
-    with ScalaFutures {
+    with ScalaFutures
+    with IntegrationPatience {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val configuration: ServiceConfiguration = mock[ServiceConfiguration]
-
-  override implicit val patienceConfig: PatienceConfig = PatienceConfig(
-    timeout = scaled(Span(10, Seconds)),
-    interval = scaled(Span(150, Millis))
-  )
 
   override def beforeEach() = {
     when(configuration.initialBackoffAfterFailure).thenReturn(10.seconds)
@@ -63,26 +59,27 @@ class MongoBackedWorkItemServiceSpec
       val clock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
 
       Given("there is a transmission request to process")
-      val sampleRequest = SampleTransmissionRequest.get
+      val sampleRequest = SampleTransmissionRequest.get()
       val envelope =
         TransmissionRequestEnvelope(sampleRequest, "consumingService")
 
-      when(repository.pushNew(any[TransmissionRequestEnvelope], any, any[TransmissionRequestEnvelope => ProcessingStatus]))
+      val fCaptor: ArgumentCaptor[TransmissionRequestEnvelope => ProcessingStatus] =
+        ArgumentCaptor.forClass(classOf[TransmissionRequestEnvelope => ProcessingStatus])
+
+      when(repository.pushNew(any[TransmissionRequestEnvelope], any, fCaptor.capture()))
         .thenReturn(Future.successful(createWorkItem(envelope)))
       when(repository.updateWorkItemBodyDeliveryAttempts(any[ObjectId], any[TransmissionRequestEnvelope]))
         .thenReturn(Future.successful(true))
 
       val service =
-        new MongoBackedWorkItemService(repository, job, configuration, clock)
+        MongoBackedWorkItemService(repository, job, configuration, clock)
 
       When("the request was enqueued")
       service.enqueue(envelope).futureValue
 
       Then("the request has been stored to MongoDB queue")
-      Mockito
-        .verify(repository)
-        .pushNew(eqTo(envelope), any[Instant], any[TransmissionRequestEnvelope => ProcessingStatus])
-
+      verify(repository)
+        .pushNew(eqTo(envelope), any[Instant], fCaptor.capture())
     }
 
     "do nothing and return false if there are no items in the queue" in {
@@ -92,7 +89,7 @@ class MongoBackedWorkItemServiceSpec
       val clock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
 
       val service =
-        new MongoBackedWorkItemService(repository, job, configuration, clock)
+        MongoBackedWorkItemService(repository, job, configuration, clock)
 
       when(repository.pullOutstanding(any, any))
         .thenReturn(Future.successful(None))
@@ -101,11 +98,10 @@ class MongoBackedWorkItemServiceSpec
       val moreItems = service.processOne().futureValue
 
       Then("nothing was processed")
-      Mockito.verifyNoInteractions(job)
+      verifyNoInteractions(job)
 
       And("the service responded that the queue is empty")
       moreItems shouldBe false
-
     }
 
     "process first item in the queue and, if processing successful mark is as done" in {
@@ -115,9 +111,9 @@ class MongoBackedWorkItemServiceSpec
       val clock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
 
       val service =
-        new MongoBackedWorkItemService(repository, job, configuration, clock)
+        MongoBackedWorkItemService(repository, job, configuration, clock)
 
-      val sampleRequest = SampleTransmissionRequest.get
+      val sampleRequest = SampleTransmissionRequest.get()
       val envelope =
         TransmissionRequestEnvelope(sampleRequest, "consumingService")
 
@@ -134,10 +130,10 @@ class MongoBackedWorkItemServiceSpec
       val moreItems = service.processOne().futureValue
 
       Then("the item has been processed (and we assume we can retry it)")
-      Mockito.verify(job).process(eqTo(envelope), any, any)
+      verify(job).process(eqTo(envelope), any, any)
 
       And("item has been marked as done in the database")
-      Mockito.verify(repository).complete(workItem.id, ProcessingStatus.Succeeded)
+      verify(repository).complete(workItem.id, ProcessingStatus.Succeeded)
 
       And("the service responded that the queue wasn't empty")
       moreItems shouldBe true
@@ -152,10 +148,10 @@ class MongoBackedWorkItemServiceSpec
       val triesSoFar = 2
 
       val service =
-        new MongoBackedWorkItemService(repository, job, configuration, clock)
+        MongoBackedWorkItemService(repository, job, configuration, clock)
 
       val sampleRequest =
-        SampleTransmissionRequest.get
+        SampleTransmissionRequest.get()
       val envelope =
         TransmissionRequestEnvelope(sampleRequest, "consumingService")
 
@@ -180,8 +176,7 @@ class MongoBackedWorkItemServiceSpec
       And("item has been marked as failed in the database")
       val retryTimeCaptor: ArgumentCaptor[Option[Instant]] =
         ArgumentCaptor.forClass(classOf[Option[Instant]])
-      Mockito
-        .verify(repository)
+      verify(repository)
         .markAs(
           eqTo(workItem.id),
           eqTo(ProcessingStatus.Failed),
@@ -197,20 +192,18 @@ class MongoBackedWorkItemServiceSpec
 
       And("the service responded that the queue wasn't empty")
       moreItems shouldBe true
-
     }
 
     "process first item in the queue and, if processing failed and we don't expect retries mark as permanently failed" in {
-
       Given("there are is a request in the queue")
       val repository = mock[TransmissionRequestWorkItemRepository]
       val job = mock[QueueJob]
       val clock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
 
       val service =
-        new MongoBackedWorkItemService(repository, job, configuration, clock)
+        MongoBackedWorkItemService(repository, job, configuration, clock)
 
-      val sampleRequest = SampleTransmissionRequest.get
+      val sampleRequest = SampleTransmissionRequest.get()
       val envelope =
         TransmissionRequestEnvelope(sampleRequest, "consumingService")
 
@@ -233,24 +226,22 @@ class MongoBackedWorkItemServiceSpec
       val moreItems = service.processOne().futureValue
 
       And("item has been marked as permanently failed in the database")
-      Mockito.verify(repository).markAs(workItem.id, ProcessingStatus.PermanentlyFailed, None)
+      verify(repository).markAs(workItem.id, ProcessingStatus.PermanentlyFailed, None)
 
       And("the service responded that the queue wasn't empty")
       moreItems shouldBe true
-
     }
 
     "process first item in the queue and, if processing failed and retried not allowed because of time window expired, mark as permanently failed" in {
-
       Given("there are is a request in the queue")
       val repository = mock[TransmissionRequestWorkItemRepository]
       val job = mock[QueueJob]
       val clock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
 
       val service =
-        new MongoBackedWorkItemService(repository, job, configuration, clock)
+        MongoBackedWorkItemService(repository, job, configuration, clock)
 
-      val sampleRequest = SampleTransmissionRequest.get
+      val sampleRequest = SampleTransmissionRequest.get()
       val envelope =
         TransmissionRequestEnvelope(sampleRequest, "consumingService")
 
@@ -273,17 +264,17 @@ class MongoBackedWorkItemServiceSpec
       val moreItems = service.processOne().futureValue
 
       And("item has been marked as permanently failed in the database")
-      Mockito.verify(repository).markAs(workItem.id, ProcessingStatus.PermanentlyFailed, None)
+      verify(repository).markAs(workItem.id, ProcessingStatus.PermanentlyFailed, None)
 
       And("the service responded that the queue wasn't empty")
       moreItems shouldBe true
-
     }
 
     def createWorkItem(
-        request: TransmissionRequestEnvelope,
-        creationTime: Instant = Instant.now(),
-        retrySoFar: Int = 0): WorkItem[TransmissionRequestEnvelope] =
+      request     : TransmissionRequestEnvelope,
+      creationTime: Instant = Instant.now(),
+      retrySoFar  : Int = 0
+    ): WorkItem[TransmissionRequestEnvelope] =
       WorkItem(
         ObjectId.get(),
         creationTime,
@@ -293,7 +284,5 @@ class MongoBackedWorkItemServiceSpec
         retrySoFar,
         request
       )
-
   }
-
 }

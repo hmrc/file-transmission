@@ -19,7 +19,8 @@ package uk.gov.hmrc.filetransmission.utils
 import java.net.URL
 import java.time.Instant
 
-import org.mockito.{Mockito, MockitoSugar}
+import org.mockito.Mockito
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -33,19 +34,21 @@ class RequestValidatorSpec
     with GivenWhenThen
     with MockitoSugar {
 
-  val httpCallback: URL = new URL("http://127.0.0.1/test")
+  val httpCallback: URL = URL("http://127.0.0.1/test")
 
   val httpRequest: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
-    File("ref",
-         new URL("http://127.0.0.1/test"),
-         "test.xml",
-         "application/xml",
-         "checksum",
-         1,
-         1024,
-         Instant.now),
+    File(
+      "ref",
+      URL("http://127.0.0.1/test"),
+      "test.xml",
+      "application/xml",
+      "checksum",
+      1,
+      1024,
+      Instant.now()
+    ),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
     httpCallback,
     None
@@ -54,26 +57,27 @@ class RequestValidatorSpec
   val httpsRequest: TransmissionRequest = TransmissionRequest(
     Batch("A", 10),
     Interface("J", "1.0"),
-    File("ref",
-         new URL("http://127.0.0.1/test"),
-         "test.xml",
-         "application/xml",
-         "checksum",
-         1,
-         1024,
-         Instant.now),
+    File(
+      "ref",
+      URL("http://127.0.0.1/test"),
+      "test.xml",
+      "application/xml",
+      "checksum",
+      1,
+      1024,
+      Instant.now()
+    ),
     Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
-    new URL("https://127.0.0.1/test"),
+    URL("https://127.0.0.1/test"),
     None
   )
 
   "RequestValidator.validate" should {
-
     "accept request if URL with protocol in allowed list" in {
       Given("a service configuration with only https callbacks allowed")
       val config = mock[ServiceConfiguration]
       Mockito.when(config.allowedCallbackProtocols).thenReturn(Seq("https"))
-      val validator = new RequestValidator(config)
+      val validator = RequestValidator(config)
 
       When("a request with a https callback received")
       val result =
@@ -89,7 +93,7 @@ class RequestValidatorSpec
       Given("a service configuration with only https callbacks allowed")
       val config = mock[ServiceConfiguration]
       Mockito.when(config.allowedCallbackProtocols).thenReturn(Seq("https"))
-      val validator = new RequestValidator(config)
+      val validator = RequestValidator(config)
 
       When("a request with a http callback received")
       val result = validator.validate(httpRequest)

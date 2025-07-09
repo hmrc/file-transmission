@@ -16,36 +16,40 @@
 
 package uk.gov.hmrc.filetransmission.model
 
-import java.net.URL
-import java.time.Instant
-
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, Json, __}
 import uk.gov.hmrc.filetransmission.utils.HttpUrlFormat
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.ContextExtractor
 
+import java.net.URL
+import java.time.Instant
 import scala.concurrent.duration._
 
-case class FailedDeliveryAttempt(time: Instant, failureReason: String)
+case class FailedDeliveryAttempt(
+  time         : Instant,
+  failureReason: String
+)
 
-case class TransmissionRequest(batch: Batch,
-                               interface: Interface,
-                               file: File,
-                               properties: Seq[Property],
-                               callbackUrl: URL,
-                               deliveryWindowDuration: Option[FiniteDuration])
+case class TransmissionRequest(
+  batch                 : Batch,
+  interface             : Interface,
+  file                  : File,
+  properties            : Seq[Property],
+  callbackUrl           : URL,
+  deliveryWindowDuration: Option[FiniteDuration]
+)
 
 case class TransmissionRequestEnvelope(
-    request: TransmissionRequest,
-    serviceName: String,
-    deliveryAttempts: Seq[FailedDeliveryAttempt] = Seq.empty
+  request         : TransmissionRequest,
+  serviceName     : String,
+  deliveryAttempts: Seq[FailedDeliveryAttempt] = Seq.empty
 ) {
   def withFailedDeliveryAttempt(
-      da: FailedDeliveryAttempt): TransmissionRequestEnvelope = {
+    da: FailedDeliveryAttempt
+  ): TransmissionRequestEnvelope =
     this.copy(
       deliveryAttempts = deliveryAttempts :+ da
     )
-  }
 
   def describe =
     s"consumingService: [$serviceName] fileReference: [${request.file.reference}] batchId: [${request.batch.id}]"
@@ -56,64 +60,65 @@ case class Batch(id: String, fileCount: Int)
 case class Interface(name: String, version: String)
 
 case class File(
-    reference: String,
-    location: URL,
-    name: String,
-    mimeType: String,
-    checksum: String,
-    sequenceNumber: Int,
-    size: Int,
-    uploadTimestamp: Instant
+  reference      : String,
+  location       : URL,
+  name           : String,
+  mimeType       : String,
+  checksum       : String,
+  sequenceNumber : Int,
+  size           : Int,
+  uploadTimestamp: Instant
 )
 
 case class Property(
-    name: String,
-    value: String
+  name : String,
+  value: String
 )
 
 object TransmissionRequest {
-  implicit val urlReads: Format[URL] = HttpUrlFormat
+  given Format[URL] = HttpUrlFormat
 
-  implicit val fileReads: Format[File] = Json.format[File]
+  given Format[File] = Json.format[File]
 
-  implicit val propertyReads: Format[Property] = Json.format[Property]
+  given Format[Property] = Json.format[Property]
 
-  implicit val interfaceReads: Format[Interface] = Json.format[Interface]
+  given Format[Interface] = Json.format[Interface]
 
-  implicit val batchReads: Format[Batch] = Json.format[Batch]
+  given Format[Batch] = Json.format[Batch]
 
   val timeInSecondsFormat: Format[FiniteDuration] =
-    implicitly[Format[Int]].inmap(_.seconds, _.toSeconds.toInt)
+    summon[Format[Int]].inmap(_.seconds, _.toSeconds.toInt)
 
-  implicit val transmissionRequestReads: Format[TransmissionRequest] =
+  given Format[TransmissionRequest] =
     ( (__ \ "batch"                          ).format[Batch]
     ~ (__ \ "interface"                      ).format[Interface]
     ~ (__ \ "file"                           ).format[File]
     ~ (__ \ "properties"                     ).format[Seq[Property]]
     ~ (__ \ "callbackUrl"                    ).format[URL]
     ~ (__ \ "deliveryWindowDurationInSeconds").formatNullable(timeInSecondsFormat)
-    )(TransmissionRequest.apply, unlift(TransmissionRequest.unapply))
+    )(TransmissionRequest.apply, o => Tuple.fromProductTyped(o))
 
-  implicit val requestExtractor: ContextExtractor[TransmissionRequest] = new ContextExtractor[TransmissionRequest] {
-    override def extract(request: TransmissionRequest): Map[String, String] =
-      Map(
-        "file-reference" -> request.file.reference,
-        "batch-reference" -> request.batch.id
-      )
-  }
+  given ContextExtractor[TransmissionRequest] =
+    new ContextExtractor[TransmissionRequest] {
+      override def extract(request: TransmissionRequest): Map[String, String] =
+        Map(
+          "file-reference"  -> request.file.reference,
+          "batch-reference" -> request.batch.id
+        )
+    }
 }
 
 object FailedDeliveryAttempt {
-  implicit val failedDeliveryFormat: Format[FailedDeliveryAttempt] =
+  given Format[FailedDeliveryAttempt] =
     ( (__ \ "time"         ).format[Instant] // formats as string
     ~ (__ \ "failureReason").format[String]
-    )(FailedDeliveryAttempt.apply, unlift(FailedDeliveryAttempt.unapply))
+    )(FailedDeliveryAttempt.apply, o => Tuple.fromProductTyped(o))
 }
 
 object TransmissionRequestEnvelope {
-  implicit val transmissionRequestEnvelopeFormat: Format[TransmissionRequestEnvelope] =
+  given transmissionRequestEnvelopeFormat: Format[TransmissionRequestEnvelope] =
     ( (__ \ "request"         ).format[TransmissionRequest]
     ~ (__ \ "serviceName"     ).format[String]
     ~ (__ \ "deliveryAttempts").format[Seq[FailedDeliveryAttempt]]
-    )(TransmissionRequestEnvelope.apply, unlift(TransmissionRequestEnvelope.unapply))
+    )(TransmissionRequestEnvelope.apply, o => Tuple.fromProductTyped(o))
 }

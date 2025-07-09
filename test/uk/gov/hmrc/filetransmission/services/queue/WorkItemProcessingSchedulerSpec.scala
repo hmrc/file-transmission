@@ -15,8 +15,9 @@
  */
 
 package uk.gov.hmrc.filetransmission.services.queue
+
 import org.apache.pekko.actor.ActorSystem
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.GivenWhenThen
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
@@ -31,14 +32,13 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, _}
 
 class WorkItemProcessingSchedulerSpec
-    extends AnyWordSpec
-    with Matchers
-    with GivenWhenThen
-    with MockitoSugar
-    with Eventually {
+  extends AnyWordSpec
+     with Matchers
+     with GivenWhenThen
+     with MockitoSugar
+     with Eventually {
 
   class MockWorkItemService extends WorkItemService {
-
     var remainingItems = 0
 
     var processedItems = 0
@@ -56,19 +56,18 @@ class WorkItemProcessingSchedulerSpec
 
     override def enqueue(request: TransmissionRequestEnvelope): Future[Unit] =
       ???
+
     override def processOne(): Future[Boolean] =
       synchronized {
         if (shouldFail) {
           shouldFail = false
-          Future.failed(new Exception("planned failure"))
+          Future.failed(Exception("planned failure"))
         } else if (remainingItems > 0) {
           remainingItems = remainingItems - 1
           processedItems = processedItems + 1
           Future.successful(true)
-        } else {
+        } else
           Future.successful(false)
-        }
-
       }
 
     override def clearQueue(): Future[Boolean] = {
@@ -77,16 +76,17 @@ class WorkItemProcessingSchedulerSpec
     }
   }
 
-  implicit val actorSystem: ActorSystem = ActorSystem.create()
+  given ActorSystem = ActorSystem.create()
 
-  implicit val applicationLifecycle: ApplicationLifecycle = new ApplicationLifecycle {
-    override def addStopHook(hook: () => Future[_]): Unit = {}
+  given ApplicationLifecycle = new ApplicationLifecycle {
+    override def addStopHook(hook: () => Future[_]): Unit =
+      ()
 
-    override def stop(): Future[_] = Future.successful(())
+    override def stop(): Future[_] =
+      Future.successful(())
   }
 
   "scheduler" should {
-
     val configuration = new ServiceConfiguration {
       override def mdgEndpoint: String = ???
       override def allowedUserAgents: Seq[String] = ???
@@ -101,13 +101,12 @@ class WorkItemProcessingSchedulerSpec
     }
 
     "process all requests waiting in the queue" in {
-
-      val workItemService = new MockWorkItemService()
+      val workItemService = MockWorkItemService()
 
       workItemService.addRemainingItems(3)
 
       val workItemProcessingScheduler =
-        new WorkItemProcessingScheduler(workItemService, configuration)
+        WorkItemProcessingScheduler(workItemService, configuration)
 
       eventually(Timeout(scaled(Span(2, Seconds))),
                  Interval(scaled(Span(200, Millis)))) {
@@ -115,17 +114,15 @@ class WorkItemProcessingSchedulerSpec
       }
 
       workItemProcessingScheduler.shutDown()
-
     }
 
     "continue polling after a while when there are no messages in the queue" in {
-
-      val workItemService = new MockWorkItemService()
+      val workItemService = MockWorkItemService()
 
       workItemService.addRemainingItems(3)
 
       val workItemProcessingScheduler =
-        new WorkItemProcessingScheduler(workItemService, configuration)
+        WorkItemProcessingScheduler(workItemService, configuration)
 
       eventually(Timeout(scaled(Span(2, Seconds))),
                  Interval(scaled(Span(200, Millis)))) {
@@ -142,16 +139,15 @@ class WorkItemProcessingSchedulerSpec
       }
 
       workItemProcessingScheduler.shutDown()
-
     }
 
     "continue polling after a while when there was an error processing the message" in {
-      val workItemService = new MockWorkItemService()
+      val workItemService = MockWorkItemService()
 
       workItemService.addRemainingItems(3)
 
       val workItemProcessingScheduler =
-        new WorkItemProcessingScheduler(workItemService, configuration)
+        WorkItemProcessingScheduler(workItemService, configuration)
 
       eventually(Timeout(scaled(Span(2, Seconds))),
                  Interval(scaled(Span(200, Millis)))) {
@@ -169,6 +165,5 @@ class WorkItemProcessingSchedulerSpec
 
       workItemProcessingScheduler.shutDown()
     }
-
   }
 }

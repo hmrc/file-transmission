@@ -30,15 +30,15 @@ case object TransmissionPending extends TransmissionResult
 case object TransmissionFailure extends TransmissionResult
 
 trait TransmissionService {
-  def transmit(requestEnvelope: TransmissionRequestEnvelope)(implicit hc: HeaderCarrier): Future[TransmissionResult]
+  def transmit(requestEnvelope: TransmissionRequestEnvelope)(using HeaderCarrier): Future[TransmissionResult]
 }
 
 @Singleton
 class RetryQueueBackedTransmissionService @Inject()(
-    mdgConnector: MdgConnector,
-    workItemService: WorkItemService,
-    callbackSender: CallbackSender
-)(implicit ec: ExecutionContext)extends TransmissionService {
+  mdgConnector   : MdgConnector,
+  workItemService: WorkItemService,
+  callbackSender : CallbackSender
+)(using ExecutionContext) extends TransmissionService {
 
   private val mdgResultToTransmissionResult: PartialFunction[MdgRequestResult, TransmissionResult] = {
     case MdgRequestSuccessful    => TransmissionSuccess
@@ -47,30 +47,28 @@ class RetryQueueBackedTransmissionService @Inject()(
   }
 
 
-  override def transmit(requestEnvelope: TransmissionRequestEnvelope)(implicit hc: HeaderCarrier): Future[TransmissionResult] = {
-
+  override def transmit(requestEnvelope: TransmissionRequestEnvelope)(using HeaderCarrier): Future[TransmissionResult] =
     mdgConnector
       .requestTransmission(requestEnvelope.request)
       .map(callbackOrEnqueue(_, requestEnvelope))
       .map(mdgResultToTransmissionResult)
       .recoverWith { case _ => enqueueForLaterDeliveryAttempt(requestEnvelope) }
-  }
 
-  private def callbackOrEnqueue(mdgResult: MdgRequestResult,
-                                requestEnvelope: TransmissionRequestEnvelope)
-                                (implicit hc: HeaderCarrier): MdgRequestResult = {
-    mdgResult match {
+  private def callbackOrEnqueue(
+    mdgResult: MdgRequestResult,
+    requestEnvelope: TransmissionRequestEnvelope
+  )(using HeaderCarrier): MdgRequestResult = {
+    mdgResult match
       case MdgRequestSuccessful    => callbackSender.sendSuccessfulCallback(requestEnvelope.request)
       case MdgRequestFatalError(e) => callbackSender.sendFailedCallback(requestEnvelope.request, e)
       case MdgRequestError(_)      => enqueueForLaterDeliveryAttempt(requestEnvelope)
-    }
+
     mdgResult
   }
 
-  private def enqueueForLaterDeliveryAttempt(requestEnvelope: TransmissionRequestEnvelope): Future[TransmissionResult] = {
+  private def enqueueForLaterDeliveryAttempt(requestEnvelope: TransmissionRequestEnvelope): Future[TransmissionResult] =
     workItemService
       .enqueue(requestEnvelope)
       .map(_ => TransmissionPending)
       .recover{ case _ => TransmissionFailure }
-  }
 }
