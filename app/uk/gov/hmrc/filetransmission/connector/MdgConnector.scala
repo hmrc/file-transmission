@@ -18,6 +18,8 @@ package uk.gov.hmrc.filetransmission.connector
 
 import play.api.Logger
 import play.api.http.{ContentTypes, HeaderNames, MimeTypes, Status}
+import play.api.libs.json.{Json, Writes}
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import play.mvc.Http
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
@@ -68,10 +70,13 @@ class MdgConnector @Inject()(
       )
     }
 
+    //httpClient.POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,serializedRequest, headers)
+          
     httpClient.
-      post(url"${serviceConfiguration.mdgEndpoint}")(serializedRequest)
+      post(url"${serviceConfiguration.mdgEndpoint}")
       .setHeader(headers: _*)
-      .execute(HttpResponse)
+      .withBody(Json.toJson(serializedRequest))
+      .execute[HttpResponse]
       .map { response =>
         response.status match
           case s if Status.isSuccessful(s) =>
