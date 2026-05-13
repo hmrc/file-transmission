@@ -21,8 +21,9 @@ import play.api.http.{ContentTypes, HeaderNames, MimeTypes, Status}
 import play.mvc.Http
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.util.UUID
 import javax.inject.Inject
@@ -45,14 +46,14 @@ case class MdgRequestFatalError(e: String) extends MdgRequestResult {
 }
 
 class MdgConnector @Inject()(
-  httpClient          : HttpClient,
-  serviceConfiguration: ServiceConfiguration,
-  requestSerializer   : MdgRequestSerializer
+                              httpClient          : HttpClientV2,
+                              serviceConfiguration: ServiceConfiguration,
+                              requestSerializer   : MdgRequestSerializer
 )(using ExecutionContext) {
 
   def requestTransmission(
     request: TransmissionRequest
-  )(using HeaderCarrier): Future[MdgRequestResult] = {
+  )(implicit headerCarrier: HeaderCarrier) : Future[MdgRequestResult] = {
 
     val logger = Logger(getClass)
     val serializedRequest: String = requestSerializer.serialize(request)
@@ -67,7 +68,10 @@ class MdgConnector @Inject()(
       )
     }
 
-    httpClient.POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,serializedRequest, headers)
+    httpClient.
+      post(url"${serviceConfiguration.mdgEndpoint}")(serializedRequest)
+      .setHeader(headers: _*)
+      .execute(HttpResponse)
       .map { response =>
         response.status match
           case s if Status.isSuccessful(s) =>
