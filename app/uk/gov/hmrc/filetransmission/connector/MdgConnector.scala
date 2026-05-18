@@ -54,9 +54,7 @@ class MdgConnector @Inject()(
 )(using ExecutionContext) {
 
   def requestTransmission(
-    request: TransmissionRequest
-  )(implicit headerCarrier: HeaderCarrier) : Future[MdgRequestResult] = {
-
+    request: TransmissionRequest)(using HeaderCarrier): Future[MdgRequestResult] = {
     val logger = Logger(getClass)
     val serializedRequest: String = requestSerializer.serialize(request)
     val correlationId = generateCorrelationId()
@@ -70,8 +68,6 @@ class MdgConnector @Inject()(
       )
     }
 
-    //httpClient.POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,serializedRequest, headers)
-          
     httpClient.
       post(url"${serviceConfiguration.mdgEndpoint}")
       .setHeader(headers: _*)
