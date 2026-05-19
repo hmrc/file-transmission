@@ -31,7 +31,7 @@ import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.test.HttpClientV2Support
+import uk.gov.hmrc.http.test.HttpClientSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -42,7 +42,7 @@ class MdgConnectorSpec
     with MockitoSugar
     with Matchers
     with BeforeAndAfterAll
-    with HttpClientV2Support
+    with HttpClientSupport
     with ScalaFutures
     with IntegrationPatience {
 
@@ -118,7 +118,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClientV2, serviceConfiguration, serializer)
+        MdgConnector(httpClient, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe MdgRequestSuccessful
     }
@@ -130,7 +130,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClientV2, serviceConfiguration, serializer)
+        MdgConnector(httpClient, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe a[MdgRequestError]
     }
@@ -142,7 +142,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClientV2, serviceConfiguration, serializer)
+        MdgConnector(httpClient, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe a[MdgRequestFatalError]
