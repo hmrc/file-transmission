@@ -21,15 +21,13 @@ import play.api.libs.json.{Json, Writes}
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.filetransmission.services.CallbackSender
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
-import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse, StringContextOps}
-import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class HttpCallbackSender   @Inject()(
-  httpClient: HttpClientV2
+class HttpCallbackSender @Inject()(
+  httpClient: HttpClient
 )(using
   ExecutionContext
 ) extends CallbackSender {
@@ -62,12 +60,8 @@ class HttpCallbackSender   @Inject()(
       batchId       = request.batch.id
     )
 
-//    httpClient
-//      .POST[SuccessfulCallback, HttpResponse](request.callbackUrl, callback)
     httpClient
-      .post(url"${request.callbackUrl}")
-      .withBody(Json.toJson(callback))
-      .execute[HttpResponse]
+      .POST[SuccessfulCallback, HttpResponse](request.callbackUrl, callback)
       .map(response =>
         withLoggedContext(request) {
           logger.info(s"""Response from: [${request.callbackUrl}], to delivery successful callback: [$callback], was: [${response.status}].""")
@@ -89,12 +83,8 @@ class HttpCallbackSender   @Inject()(
       errorDetails  = reason
     )
 
-//    httpClient
-//      .POST[FailureCallback, HttpResponse](request.callbackUrl, callback)
     httpClient
-      .post(url"${request.callbackUrl}")
-      .withBody(Json.toJson(callback))
-      .execute[HttpResponse]
+      .POST[FailureCallback, HttpResponse](request.callbackUrl, callback)
       .map(response =>
         withLoggedContext(request) {
           logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [$callback], was: [${response.status}].")
