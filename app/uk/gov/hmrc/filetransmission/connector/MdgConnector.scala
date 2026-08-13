@@ -22,7 +22,9 @@ import play.mvc.Http
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 
 import java.util.UUID
 import javax.inject.Inject
@@ -45,7 +47,7 @@ case class MdgRequestFatalError(e: String) extends MdgRequestResult {
 }
 
 class MdgConnector @Inject()(
-  httpClient          : HttpClient,
+  httpClient          : HttpClientV2,
   serviceConfiguration: ServiceConfiguration,
   requestSerializer   : MdgRequestSerializer
 )(using ExecutionContext) {
@@ -67,7 +69,12 @@ class MdgConnector @Inject()(
       )
     }
 
-    httpClient.POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,serializedRequest, headers)
+    httpClient
+      .post(url"${serviceConfiguration.mdgEndpoint}")
+      //.post(url"serviceConfiguration.mdgEndpoint")
+      .withBody(serializedRequest)
+      .setHeader(headers.toSeq: _*)
+      .execute[HttpResponse]
       .map { response =>
         response.status match
           case s if Status.isSuccessful(s) =>

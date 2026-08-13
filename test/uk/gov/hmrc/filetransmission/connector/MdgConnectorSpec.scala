@@ -31,7 +31,7 @@ import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.test.HttpClientSupport
+import uk.gov.hmrc.http.test.HttpClientV2Support
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -42,7 +42,7 @@ class MdgConnectorSpec
     with MockitoSugar
     with Matchers
     with BeforeAndAfterAll
-    with HttpClientSupport
+    with HttpClientV2Support
     with ScalaFutures
     with IntegrationPatience {
 
@@ -55,7 +55,6 @@ class MdgConnectorSpec
     override def initialBackoffAfterFailure: Duration = ???
     override def allowedCallbackProtocols: Seq[String] = ???
     override def defaultDeliveryWindowDuration: Duration = ???
-
     override def mdgAuthorizationToken: String = "AuthToken"
   }
 
@@ -118,7 +117,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClientV2, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe MdgRequestSuccessful
     }
@@ -130,7 +129,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClientV2, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe a[MdgRequestError]
     }
@@ -142,7 +141,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClientV2, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe a[MdgRequestFatalError]

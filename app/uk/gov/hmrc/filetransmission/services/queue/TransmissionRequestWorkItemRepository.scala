@@ -17,7 +17,6 @@
 package uk.gov.hmrc.filetransmission.services.queue
 
 import org.bson.types.ObjectId
-import org.mongodb.scala.SingleObservableFuture
 import org.mongodb.scala.model.{Filters, Updates, FindOneAndUpdateOptions, ReturnDocument}
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequestEnvelope
