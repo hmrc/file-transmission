@@ -29,30 +29,30 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class HttpCallbackSender @Inject()(
-  httpClient: HttpClientV2
-)(using
-  ExecutionContext
-) extends CallbackSender {
+                                    httpClient: HttpClientV2
+                                  )(using
+                                    ExecutionContext
+                                  ) extends CallbackSender {
 
   private val logger = Logger(getClass)
 
   case class SuccessfulCallback(
-    fileReference: String,
-    batchId      : String,
-    outcome      : String = "SUCCESS"
-  )
+                                 fileReference: String,
+                                 batchId: String,
+                                 outcome: String = "SUCCESS"
+                               )
 
   case class FailureCallback(
-    fileReference: String,
-    batchId      : String,
-    outcome      : String = "FAILURE",
-    errorDetails : String
-  )
+                              fileReference: String,
+                              batchId: String,
+                              outcome: String = "FAILURE",
+                              errorDetails: String
+                            )
 
   given Writes[SuccessfulCallback] = Json.writes[SuccessfulCallback]
 
   given Writes[FailureCallback] = Json.writes[FailureCallback]
-  
+
 
   given HttpReads[HttpResponse] =
     HttpReads.Implicits.throwOnFailure(HttpReads.Implicits.readEitherOf(HttpReads.Implicits.readRaw))
@@ -60,7 +60,7 @@ class HttpCallbackSender @Inject()(
   override def sendSuccessfulCallback(request: TransmissionRequest)(using HeaderCarrier): Future[Unit] = {
     val callback = SuccessfulCallback(
       fileReference = request.file.reference,
-      batchId       = request.batch.id
+      batchId = request.batch.id
     )
     
     httpClient
@@ -89,8 +89,8 @@ class HttpCallbackSender @Inject()(
   override def sendFailedCallback(request: TransmissionRequest, reason: String)(using HeaderCarrier): Future[Unit] = {
     val callback = FailureCallback(
       fileReference = request.file.reference,
-      batchId       = request.batch.id,
-      errorDetails  = reason
+      batchId = request.batch.id,
+      errorDetails = reason
     )
 
     httpClient
