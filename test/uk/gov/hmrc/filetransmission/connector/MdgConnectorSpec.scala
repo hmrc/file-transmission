@@ -16,44 +16,50 @@
 
 package uk.gov.hmrc.filetransmission.connector
 
-import java.net.URL
-import java.time.Instant
-
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import org.mockito.Mockito
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.model._
+import uk.gov.hmrc.filetransmission.model.*
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.test.HttpClientSupport
+import uk.gov.hmrc.http.test.HttpClientV2Support
 
+import java.net.URL
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class MdgConnectorSpec
-    extends AnyWordSpec
+  extends AnyWordSpec
     with GivenWhenThen
     with MockitoSugar
     with Matchers
     with BeforeAndAfterAll
-    with HttpClientSupport
+    with HttpClientV2Support
     with ScalaFutures
     with IntegrationPatience {
 
   val serviceConfiguration: ServiceConfiguration = new ServiceConfiguration {
     override def allowedUserAgents = ???
+
     override def mdgEndpoint: String = "http://127.0.0.1:11111/mdg"
+
     override def queuePollingInterval: Duration = ???
+
     override def queueRetryAfterFailureInterval: Duration = ???
+
     override def inFlightLockDuration: Duration = ???
+
     override def initialBackoffAfterFailure: Duration = ???
+
     override def allowedCallbackProtocols: Seq[String] = ???
+
     override def defaultDeliveryWindowDuration: Duration = ???
 
     override def mdgAuthorizationToken: String = "AuthToken"
@@ -118,7 +124,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClientV2, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe MdgRequestSuccessful
     }
@@ -130,7 +136,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClientV2, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe a[MdgRequestError]
     }
@@ -142,7 +148,7 @@ class MdgConnectorSpec
       Mockito.when(serializer.serialize(request)).thenReturn("serializedBody")
 
       val connector =
-        MdgConnector(httpClient, serviceConfiguration, serializer)
+        MdgConnector(httpClientV2, serviceConfiguration, serializer)
 
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue
       connector.requestTransmission(request)(using HeaderCarrier()).futureValue shouldBe a[MdgRequestFatalError]

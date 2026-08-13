@@ -18,11 +18,13 @@ package uk.gov.hmrc.filetransmission.connector
 
 import play.api.Logger
 import play.api.http.{ContentTypes, HeaderNames, MimeTypes, Status}
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import play.mvc.Http
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.HttpReads.Implicits.*
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.util.UUID
 import javax.inject.Inject
@@ -40,19 +42,20 @@ case class MdgRequestError(e: String) extends MdgRequestResult {
   override def error: Option[String] = Some(e)
 
 }
+
 case class MdgRequestFatalError(e: String) extends MdgRequestResult {
   override def error: Option[String] = Some(e)
 }
 
 class MdgConnector @Inject()(
-  httpClient          : HttpClient,
-  serviceConfiguration: ServiceConfiguration,
-  requestSerializer   : MdgRequestSerializer
-)(using ExecutionContext) {
+                              httpClient: HttpClientV2,
+                              serviceConfiguration: ServiceConfiguration,
+                              requestSerializer: MdgRequestSerializer
+                            )(using ExecutionContext) {
 
   def requestTransmission(
-    request: TransmissionRequest
-  )(using HeaderCarrier): Future[MdgRequestResult] = {
+                           request: TransmissionRequest
+                         )(using HeaderCarrier): Future[MdgRequestResult] = {
 
     val logger = Logger(getClass)
     val serializedRequest: String = requestSerializer.serialize(request)
@@ -67,7 +70,11 @@ class MdgConnector @Inject()(
       )
     }
 
-    httpClient.POSTString[HttpResponse](serviceConfiguration.mdgEndpoint,serializedRequest, headers)
+    httpClient
+      .post(url"${serviceConfiguration.mdgEndpoint}")
+      .withBody(serializedRequest)
+      .setHeader(headers.toSeq: _*)
+      .execute[HttpResponse]
       .map { response =>
         response.status match
           case s if Status.isSuccessful(s) =>
@@ -88,16 +95,16 @@ class MdgConnector @Inject()(
             )
             MdgRequestError(s"POST of '${serviceConfiguration.mdgEndpoint}' returned status $s. Response body: '${response.body}'")
       }
-    }
+  }
 
   private def generateCorrelationId(): String =
     UUID.randomUUID().toString
 
   private def buildHeaders(correlationId: String) =
     Seq(
-      HeaderNames.CONTENT_TYPE  -> ContentTypes.XML,
-      HeaderNames.ACCEPT        -> MimeTypes.XML,
+      HeaderNames.CONTENT_TYPE -> ContentTypes.XML,
+      HeaderNames.ACCEPT -> MimeTypes.XML,
       HeaderNames.AUTHORIZATION -> s"Bearer ${serviceConfiguration.mdgAuthorizationToken}",
-      "X-Correlation-ID"        -> correlationId
+      "X-Correlation-ID" -> correlationId
     )
 }

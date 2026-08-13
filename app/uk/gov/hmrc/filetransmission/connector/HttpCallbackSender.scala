@@ -18,38 +18,41 @@ package uk.gov.hmrc.filetransmission.connector
 
 import play.api.Logger
 import play.api.libs.json.{Json, Writes}
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
 import uk.gov.hmrc.filetransmission.services.CallbackSender
 import uk.gov.hmrc.filetransmission.utils.LoggingOps.withLoggedContext
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class HttpCallbackSender @Inject()(
-  httpClient: HttpClient
-)(using
-  ExecutionContext
-) extends CallbackSender {
+                                    httpClient: HttpClientV2
+                                  )(using
+                                    ExecutionContext
+                                  ) extends CallbackSender {
 
   private val logger = Logger(getClass)
 
   case class SuccessfulCallback(
-    fileReference: String,
-    batchId      : String,
-    outcome      : String = "SUCCESS"
-  )
+                                 fileReference: String,
+                                 batchId: String,
+                                 outcome: String = "SUCCESS"
+                               )
 
   case class FailureCallback(
-    fileReference: String,
-    batchId      : String,
-    outcome      : String = "FAILURE",
-    errorDetails : String
-  )
+                              fileReference: String,
+                              batchId: String,
+                              outcome: String = "FAILURE",
+                              errorDetails: String
+                            )
 
   given Writes[SuccessfulCallback] = Json.writes[SuccessfulCallback]
 
   given Writes[FailureCallback] = Json.writes[FailureCallback]
+
 
   given HttpReads[HttpResponse] =
     HttpReads.Implicits.throwOnFailure(HttpReads.Implicits.readEitherOf(HttpReads.Implicits.readRaw))
@@ -57,20 +60,27 @@ class HttpCallbackSender @Inject()(
   override def sendSuccessfulCallback(request: TransmissionRequest)(using HeaderCarrier): Future[Unit] = {
     val callback = SuccessfulCallback(
       fileReference = request.file.reference,
-      batchId       = request.batch.id
+      batchId = request.batch.id
     )
-
+    
     httpClient
-      .POST[SuccessfulCallback, HttpResponse](request.callbackUrl, callback)
-      .map(response =>
+      .post(request.callbackUrl)
+      .withBody(Json.toJson(callback))
+      .execute[HttpResponse]
+      .map { response =>
         withLoggedContext(request) {
-          logger.info(s"""Response from: [${request.callbackUrl}], to delivery successful callback: [$callback], was: [${response.status}].""")
+          logger.info(
+            s"""Response from: [${request.callbackUrl}], to delivery successful callback: [$callback], was: [${response.status}]."""
+          )
         }
-      )
+      }
       .recoverWith {
         case t: Throwable =>
           withLoggedContext(request) {
-            logger.error(s"Failed to send delivery successful callback to: [${request.callbackUrl}].", t)
+            logger.error(
+              s"Failed to send delivery successful callback to: [${request.callbackUrl}].",
+              t
+            )
             Future.failed(t)
           }
       }
@@ -79,21 +89,28 @@ class HttpCallbackSender @Inject()(
   override def sendFailedCallback(request: TransmissionRequest, reason: String)(using HeaderCarrier): Future[Unit] = {
     val callback = FailureCallback(
       fileReference = request.file.reference,
-      batchId       = request.batch.id,
-      errorDetails  = reason
+      batchId = request.batch.id,
+      errorDetails = reason
     )
 
     httpClient
-      .POST[FailureCallback, HttpResponse](request.callbackUrl, callback)
-      .map(response =>
+      .post(request.callbackUrl)
+      .withBody(Json.toJson(callback))
+      .execute[HttpResponse]
+      .map { response =>
         withLoggedContext(request) {
-          logger.info(s"Response from: [${request.callbackUrl}], to delivery failure callback: [$callback], was: [${response.status}].")
+          logger.info(
+            s"Response from: [${request.callbackUrl}], to delivery failure callback: [$callback], was: [${response.status}]."
+          )
         }
-      )
-      .recoverWith  {
+      }
+      .recoverWith {
         case t: Throwable =>
           withLoggedContext(request) {
-            logger.error(s"""Failed to send delivery failure callback to: [${request.callbackUrl}].""", t)
+            logger.error(
+              s"Failed to send delivery failure callback to: [${request.callbackUrl}].",
+              t
+            )
             Future.failed(t)
           }
       }
