@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-import java.net.URL
-import java.time.Instant
-
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlEqualTo}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
@@ -28,11 +25,13 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.filetransmission.model._
+import uk.gov.hmrc.filetransmission.model.*
 import uk.gov.hmrc.filetransmission.services.queue.{MongoBackedWorkItemService, TransmissionRequestWorkItemRepository}
 import uk.gov.hmrc.mongo.workitem.WorkItem
 
-import scala.concurrent.duration._
+import java.net.URL
+import java.time.Instant
+import scala.concurrent.duration.*
 import scala.language.postfixOps
 
 class TransmissionRequestWorkItemRepositoryISpec
@@ -124,27 +123,30 @@ class TransmissionRequestWorkItemRepositoryISpec
       When(
         "the request is processed twice (both attempts with failed delivery to MDG)")
       workItemService.processOne().futureValue shouldBe true
+      Thread.sleep(1000)
       workItemService.processOne().futureValue shouldBe true
 
-      // Pause to give Mongo time to reflect the changes above.
-      Thread.sleep(50)
+      eventually(
+        timeout(Span(15, Seconds)),
+        interval(Span(3, Seconds))
+      ) {
+        Then(
+          "the work item should be updated to include a FailedDeliveryAttempt within the TransmissionRequestEnvelope")
+        val updatedWorkItemMaybe = testInstance.findById(workItem.id).futureValue
 
-      Then(
-        "the work item should be updated to include a FailedDeliveryAttempt within the TransmissionRequestEnvelope")
-      val updatedWorkItemMaybe = testInstance.findById(workItem.id).futureValue
+        val deliveryAttempts = updatedWorkItemMaybe
+          .getOrElse(throw IllegalStateException("Failed to find Work Item"))
+          .item
+          .deliveryAttempts
 
-      val deliveryAttempts = updatedWorkItemMaybe
-        .getOrElse(throw IllegalStateException("Failed to find Work Item"))
-        .item
-        .deliveryAttempts
+        deliveryAttempts.size shouldBe 2
 
-      deliveryAttempts.size shouldBe 2
+        val testEnd = java.time.Instant.now()
 
-      val testEnd = java.time.Instant.now()
-
-      And("the FailedDeliveryAttempt(s) should include to expected failure reason, and timestamp")
-      validateDeliveryAttempt(deliveryAttempts(0), testStart, testEnd)
-      validateDeliveryAttempt(deliveryAttempts(1), testStart, testEnd)
+        And("the FailedDeliveryAttempt(s) should include to expected failure reason, and timestamp")
+        validateDeliveryAttempt(deliveryAttempts(0), testStart, testEnd)
+        validateDeliveryAttempt(deliveryAttempts(1), testStart, testEnd)
+      }
     }
   }
 
