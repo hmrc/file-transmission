@@ -17,6 +17,7 @@
 package uk.gov.hmrc.filetransmission.connector
 
 import uk.gov.hmrc.filetransmission.model.TransmissionRequest
+import uk.gov.hmrc.filetransmission.model.MimeTypes.extensionFor
 
 class MdgRequestSerializer {
 
@@ -27,6 +28,11 @@ class MdgRequestSerializer {
         <mdg:name>{property.name}</mdg:name>
         <mdg:value>{property.value}</mdg:value>
       </mdg:property>
+
+    val filename = if (request.file.name == "${filename}")
+      "${filename}" + extensionFor(request.file.mimeType).getOrElse("")
+    else
+      request.file.name
 
     val xml =
       <mdg:BatchFileInterfaceMetadata
@@ -51,7 +57,7 @@ class MdgRequestSerializer {
         <mdg:encrypted>false</mdg:encrypted>
         <mdg:properties>{propertiesXml}</mdg:properties>
         <mdg:sourceLocation>{request.file.location.toString}</mdg:sourceLocation>
-        <mdg:sourceFileName>{request.file.name}</mdg:sourceFileName>
+        <mdg:sourceFileName>{filename}</mdg:sourceFileName>
         <mdg:sourceFileMimeType>{request.file.mimeType}</mdg:sourceFileMimeType>
         <mdg:destinations>
           <mdg:destination>
