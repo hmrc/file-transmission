@@ -26,7 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.filetransmission.model._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.test.HttpClientSupport
+import uk.gov.hmrc.http.test.HttpClientV2Support
 
 import java.net.URL
 import java.time.Instant
@@ -38,7 +38,7 @@ class HttpCallbackSenderSpec
      with MockitoSugar
      with Matchers
      with BeforeAndAfterAll
-     with HttpClientSupport
+     with HttpClientV2Support
      with ScalaFutures
      with IntegrationPatience {
 
@@ -91,7 +91,7 @@ class HttpCallbackSenderSpec
   given hc: HeaderCarrier = HeaderCarrier()
 
   "Callback sender" should {
-    val callbackSender = HttpCallbackSender(httpClient)
+    val callbackSender = HttpCallbackSender(httpClientV2)
 
     "allow to send success notifications to consuming services" in {
       stubCallbackReceiverToReturnValidResponse()
