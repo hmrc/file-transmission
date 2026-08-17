@@ -19,17 +19,16 @@ package uk.gov.hmrc.filetransmission.model
 object MimeTypes {
   private val mimeToExtension = Map(
     "application/pdf" -> ".pdf",
-    "image/jpeg" -> ".jpg",
     "image/png" -> ".png",
-    "image/gif" -> ".gif",
+    "image/jpeg" -> ".jpg",
     "text/plain" -> ".txt",
-    "text/csv" -> ".csv",
-    "application/json" -> ".json",
-    "application/xml" -> ".xml",
-    "text/xml" -> ".xml",
-    "application/zip" -> ".zip",
+    "application/msword" -> ".doc",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> ".docx",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> ".xlsx"
+    "text/csv" -> ".csv",
+    "application/vnd.ms-excel" -> ".xls",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> ".xlsx",
+    "application/vnd.oasis.opendocument.spreadsheet" -> ".ods",
+    "application/vnd.oasis.opendocument.text" -> ".odt"
   )
 
   def extensionFor(mimeType: String): Option[String] =

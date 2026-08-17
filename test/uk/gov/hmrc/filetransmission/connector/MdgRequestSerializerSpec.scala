@@ -199,7 +199,7 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
           "ref",
           URL("http://127.0.0.1/test"),
           "${filename}",
-          "application/xml",
+          "application/pdf",
           "checksum",
           1,
           1024,
@@ -211,7 +211,7 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
 
       val serializedRequest: String = serializer.serialize(request)
 
-      assert(serializedRequest.contains("<mdg:sourceFileName>${filename}.xml</mdg:sourceFileName>"))
+      assert(serializedRequest.contains("<mdg:sourceFileName>${filename}.pdf</mdg:sourceFileName>"))
     }
   }
 
