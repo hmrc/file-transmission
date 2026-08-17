@@ -72,8 +72,8 @@ class MdgConnector @Inject()(
 
     httpClient
       .post(url"${serviceConfiguration.mdgEndpoint}")
+      .setHeader(headers: _*)
       .withBody(serializedRequest)
-      .setHeader(headers.toSeq: _*)
       .execute[HttpResponse]
       .map { response =>
         response.status match
