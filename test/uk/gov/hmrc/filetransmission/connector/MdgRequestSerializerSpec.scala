@@ -167,7 +167,6 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
       }
     }
 
-
     "does not add whitespace to long fields" in {
       val longFilename = "a" * 200 + ".pdf"
       val request = TransmissionRequest(
@@ -190,6 +189,29 @@ class MdgRequestSerializerSpec extends AnyWordSpec with Matchers with GivenWhenT
       val serializedRequest: String = serializer.serialize(request)
 
       assert(serializedRequest.contains(s"<mdg:sourceFileName>$longFilename</mdg:sourceFileName>"))
+    }
+
+    "will add file extension when filename is ${filename}" in {
+      val request = TransmissionRequest(
+        Batch("A", 10),
+        Interface("J", "1.0"),
+        File(
+          "ref",
+          URL("http://127.0.0.1/test"),
+          "${filename}",
+          "application/pdf",
+          "checksum",
+          1,
+          1024,
+          Instant.now),
+        Seq(Property("KEY1", "VAL1"), Property("KEY2", "VAL2")),
+        URL("http://127.0.0.1/test"),
+        Some(30 seconds)
+      )
+
+      val serializedRequest: String = serializer.serialize(request)
+
+      assert(serializedRequest.contains("<mdg:sourceFileName>${filename}.pdf</mdg:sourceFileName>"))
     }
   }
 
