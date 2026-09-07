@@ -43,7 +43,7 @@ class TransmissionRequestController @Inject()(
 
   private val logger = Logger(getClass)
 
-  def requestTransmission() =
+  def requestTransmission(): Action[JsValue] =
     Action.async(parse.json) {
       implicit request: Request[JsValue] =>
         onlyAllowedServices { serviceName =>
@@ -57,7 +57,7 @@ class TransmissionRequestController @Inject()(
         }
     }
 
-  def clearRequestQueue() = Action.async {
+  def clearRequestQueue(): Action[AnyContent] = Action.async {
     workItemService.clearQueue().map { cleared =>
       logger.info(s"Clear request queue result was: [$cleared].")
       Ok(Json.parse(s"""{"cleared":"$cleared"}"""))}

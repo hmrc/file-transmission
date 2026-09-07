@@ -43,20 +43,6 @@ class TestOnlyController @Inject()(
 
   private val logger = Logger(getClass)
 
-  def requestTransmission(): Action[JsValue] =
-    Action.async(parse.json) {
-      implicit request: Request[JsValue] =>
-        onlyAllowedServices { serviceName =>
-          withJsonBody[TransmissionRequest] { transmissionRequest =>
-            requestValidator.validate(transmissionRequest) match
-              case Left(e) => Future.successful(BadRequest(e))
-              case _       => transmissionService
-                                .transmit(TransmissionRequestEnvelope(transmissionRequest, serviceName))
-                                .map { _ => Accepted }
-          }
-        }
-    }
-
   def clearRequestQueue(): Action[AnyContent] = Action.async {
     workItemService.clearQueue().map { cleared =>
       logger.info(s"Clear request queue result was: [$cleared].")
