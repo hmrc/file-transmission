@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.filetransmission.controllers
+package uk.gov.hmrc.filetransmission.testControllers
 
 import play.api.Logger
-import play.api.libs.json._
-import play.api.mvc._
+import play.api.libs.json.*
+import play.api.mvc.*
 import uk.gov.hmrc.filetransmission.config.ServiceConfiguration
-import uk.gov.hmrc.filetransmission.model._
+import uk.gov.hmrc.filetransmission.model.*
 import uk.gov.hmrc.filetransmission.services.TransmissionService
 import uk.gov.hmrc.filetransmission.services.queue.WorkItemService
 import uk.gov.hmrc.filetransmission.utils.UserAgentFilter
@@ -30,7 +30,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class TransmissionRequestController @Inject()(
+class TestOnlyController @Inject()(
   workItemService           : WorkItemService,
   transmissionService       : TransmissionService,
   requestValidator          : RequestValidator,
@@ -42,20 +42,6 @@ class TransmissionRequestController @Inject()(
      with UserAgentFilter {
 
   private val logger = Logger(getClass)
-
-  def requestTransmission(): Action[JsValue] =
-    Action.async(parse.json) {
-      implicit request: Request[JsValue] =>
-        onlyAllowedServices { serviceName =>
-          withJsonBody[TransmissionRequest] { transmissionRequest =>
-            requestValidator.validate(transmissionRequest) match
-              case Left(e) => Future.successful(BadRequest(e))
-              case _       => transmissionService
-                                .transmit(TransmissionRequestEnvelope(transmissionRequest, serviceName))
-                                .map { _ => Accepted }
-          }
-        }
-    }
 
   def clearRequestQueue(): Action[AnyContent] = Action.async {
     workItemService.clearQueue().map { cleared =>
